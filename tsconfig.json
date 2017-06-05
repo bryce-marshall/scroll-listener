@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "target": "es5",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "removeComments": false,
+        "sourceMap": false,
+        "outDir": ".",
+        "declaration": true,
+        "pretty": true
+    },
+    "include": [
+        "./scroll-listener.html/package-src"
+    ],
+    "exclude": [
+        ".vscode",
+        "node_modules",
+        "test*"
+    ]
+}

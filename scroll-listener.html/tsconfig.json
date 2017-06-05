@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "stripInternal": true,
+        "target": "es5",
+        "module": "umd",
+        "moduleResolution": "classic",
+        "removeComments": false,
+        "sourceMap": false,
+        "outDir": "./build",
+        "declaration": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "pretty": true,
+        "lib": [
+            "dom",
+            "es2015"
+        ] 
+    },
+    "include": [
+        "index.ts",
+        "package-src"
+    ],
+    "exclude": [
+        ".vscode",
+        "node_modules",
+        "test-build",
+        "test*"
+    ]
+}

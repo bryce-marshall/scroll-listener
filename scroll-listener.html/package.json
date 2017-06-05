@@ -1,0 +1,23 @@
+{
+  "name": "@brycemarshall/string-format",
+  "version": "1.0.0",
+  "description": "A typescript wrapper for Matt Esch's string-template package.",
+  "main": "index",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "template",
+    "string",
+    "format",
+    "replace",
+    "arguments",
+    "string-template"
+  ],
+  "author": "Bryce Marshall",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "browserify": "latest"
+  }
+}

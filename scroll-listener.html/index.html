@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ScrollListener Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4e8ef7">
+    <script src="bundle.js" type="application/javascript"></script>
+
+    <style>
+        * {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            font-size: 12px;
+        }
+
+        .viewport-outer-scroll {
+            overflow: auto;
+            width: 300px;
+            height: 230px;
+        }
+
+        button {
+            font-size: 11px;
+        }
+
+        sup {
+            color: red;
+            padding-left: 4px;
+            padding-right: 4px;
+        }
+
+        .nudge-buttons td {
+            text-align: center;
+        }
+
+        p {
+            max-width: 400px;
+            margin: 15px;
+            padding: 5px 15px 5px 15px;
+            border-bottom: solid 1px #afafaf;
+            text-align: justify;
+        }
+
+        .control-region {
+            border: 1px solid #afafaf;
+            width: 400px;
+            margin: 15px;
+            padding: 15px;
+        }
+
+        .instrument-region {
+            margin-left: 15px;
+        }
+
+        .viewport-container {
+            margin: 2px;
+            border: solid 2px #5a9daf;
+            background-color: black;
+            text-align: center;
+            width: 260px;
+            height: 200px;
+            overflow: auto;
+        }
+
+        .map {
+            margin: 2px;
+            border: solid 2px #5a9daf;
+            width: 260px;
+            height: 200px;
+        }
+
+        .map-viewport {
+            border: #afafaf 1px dashed;
+            position: absolute;
+        }
+
+        .map-viewport[inviewport] {
+            border: none;
+            background-color: black;
+        }
+
+        .map-viewport[inview] {
+            border: none;
+            background-color: #8f8f8f;
+        }
+
+        .target {
+            text-align: center;
+            width: 100px;
+            border: 0;
+            padding: 8px;
+            background-color: red;
+            color: white;
+        }
+
+        .map-target {
+            background-color: red;
+            position: absolute;
+        }
+
+        .instrumentation {
+            margin: 2px;
+            border: solid 2px #5a9daf;
+            width: 260px;
+            height: 200px;
+            text-align: left;
+        }
+    </style>
+
+</head>
+
+<body>
+    <h1>ScrollListener Demo</h1>
+    <div id="map-viewport" class="map-viewport" style="display: none;"></div>
+    <div id="map-target" class="map-target" style="display: none;"></div>
+    <div class="instrument-region">
+        <div style="float:left;text-align: center;">
+            <h2>Viewport</h2>
+            <div class="viewport-outer-scroll">
+                <div style="height:200%;"></div>
+                <div id="viewport-container" class="viewport-container">
+                    <div style="height:200%;"></div>
+                    <div style="width: 400%;text-align: center;"><input id="target" type="text" value="Target Element" readonly class="target" /></div>
+                    <div style="height:200%;"></div>
+                </div>
+                <div style="height:200%;"></div>
+            </div>
+        </div>
+        <div style="float:left;text-align: center;">
+            <h2>Map</h2>
+            <div id="map" class="map">
+            </div>
+        </div>
+        <div style="float:left;text-align: center;">
+            <h2>Event Args</h2>
+            <div id="instrumentation" class="instrumentation">
+                <table>
+                    <tr>
+                        <td>relativeRectangle.top:</td>
+                        <td><span id="t-top"></span></td>
+                    </tr>
+                    <tr>
+                        <td>relativeRectangle.left:</td>
+                        <td><span id="t-left"></span></td>
+                    </tr>
+                    <tr>
+                        <td>relativeRectangle.bottom:</td>
+                        <td><span id="t-bottom"></span></td>
+                    </tr>
+                    <tr>
+                        <td>relativeRectangle.right:</td>
+                        <td><span id="t-right"></span></td>
+                    </tr>
+                    <tr>
+                        <td>inView:</td>
+                        <td><span id="t-inview"></span></td>
+                    </tr>
+                    <tr>
+                        <td>inViewport:</td>
+                        <td><span id="t-inviewport"></span></td>
+                    </tr>
+                    <tr>
+                        <td>scrolling:</td>
+                        <td><span id="t-scrolling"></span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div style="clear:both;"></div>
+        <table class="nudge-buttons">
+            <tr>
+                <td></td>
+                <td><button id="ngu" value="u">Nudge Up</button></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td><button id="ngl" value="l">Nudge Left</button></td>
+                <td></td>
+                <td><button id="ngr" value="r">Nudge Right</button></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td><button id="ngd" value="d">Nudge Down</button></td>
+                <td></td>
+            </tr>
+        </table>
+    </div>
+    <div class="control-region">
+        <input id="cb-scope" type="checkbox" checked>Constrain scope to immediate scroll container<sup>1</sup>
+    </div>
+    <div class="control-region">
+        <label for="throttle">Throttle Duration</label><sup>2</sup>
+        <select id="sel-throttle" name="throttle">
+            <option value="0">No Throttling</option>
+            <option value="150" selected>150 Milliseconds (default)</option>
+            <option value="300">300 Milliseconds</option>
+            <option value="500">500 Milliseconds</option>
+            <option value="1000">1000 Milliseconds</option>
+        </select>
+    </div>
+    <div class="control-region">
+        <label for="border">Border Size</label><sup>3</sup>
+        <select id="sel-border" name="border">
+            <option value="0px">None</option>
+            <option value="1px">1px</option>
+            <option value="2px" selected>2px</option>
+            <option value="4px">4px</option>
+            <option value="8px">8px</option>
+        </select>
+    </div>    
+    <p><sup>1</sup>Unconstrained scope will result in the ScrollListener attaching to the scroll events of both the inner and
+        outer scrollable regions</p>
+    <p><sup>2</sup>The throttle duration is minimum delay that the ScrollListener enforces between raising sequential scroll
+        events (the default duration is 150 milliseconds). Throttling scroll events can help make a busy UI feel more responsive
+        by avoiding unnecessarily processing every DOM scroll event. ScrollListener will ALWAYS raise an event in response
+        to the final scroll position of the target element. Configuring a throttle delay of zero (0) will disable throttling, 
+        resulting in every scroll event being processed.</p>
+    <p><sup>3</sup>ScrollListener compensates for borders, which change the size of the viewport scroll window.</p>
+</body>
+
+</html>

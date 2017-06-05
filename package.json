@@ -1,0 +1,28 @@
+{
+  "name": "@brycemarshall/scroll-listener",
+  "version": "1.0.0",
+  "description": "A helper class that listens for scroll events affecting a specific element.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bryce-marshall/scroll-listener.git"
+  },
+  "main": "index",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "scroll",
+    "onscroll",
+    "event",
+    "listen",
+    "listener",
+    "scrolllistener",
+    "typescript",
+    "div",
+    "position"
+  ],
+  "author": "Bryce Marshall",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}
