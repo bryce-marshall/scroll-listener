@@ -77,6 +77,7 @@ export class ScrollListener {
      * @constructor 
      * @param targetElement - The element being watched.
      * @param callbackFunction - The @type {ScrollListenerCallbackFunction} function to invoke in response to a scroll event.
+     * @param options - An object implementing @type {ScrollListenerOptions} that specifies additional configuration options. 
     */
     constructor(targetElement: HTMLElement, callbackFunction: ScrollListenerCallbackFunction, options?: ScrollListenerOptions) {
         if (!targetElement) throw new Error("ScrollListener: targetElement cannot be null.");

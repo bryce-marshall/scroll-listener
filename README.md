@@ -71,6 +71,7 @@ export declare class ScrollListener {
      * @constructor
      * @param targetElement - The element being watched.
      * @param callbackFunction - The @type {ScrollListenerCallbackFunction} function to invoke in response to a scroll event.
+     * @param options - An object implementing @type {ScrollListenerOptions} that specifies additional configuration options.
     */
     constructor(targetElement: HTMLElement, callbackFunction: ScrollListenerCallbackFunction, options?: ScrollListenerOptions);
     /**
@@ -127,8 +128,8 @@ class ScrollListenerUnknownScope
     }
 
     close(){
-        this.scrollListener.destroy();
-        this.scrollListener = null;
+        this.listener.destroy();
+        this.listener = null;
     }
 }
 
@@ -154,8 +155,8 @@ class ScrollListenerScoped
     }
 
     close() {
-        this.scrollListener.destroy();
-        this.scrollListener = null;
+        this.listener.destroy();
+        this.listener = null;
     }
 }
 
@@ -181,8 +182,8 @@ class ScrollListenerKnownContainer
     }
 
     close() {
-        this.scrollListener.destroy();
-        this.scrollListener = null;
+        this.listener.destroy();
+        this.listener = null;
     }
 }
 
@@ -209,8 +210,8 @@ class ScrollListenerMultipleContainers
     }
 
     close() {
-        this.scrollListener.destroy();
-        this.scrollListener = null;
+        this.listener.destroy();
+        this.listener = null;
     }
 }
 
@@ -236,8 +237,8 @@ class ScrollListenerThrottleDuration
     }
 
     close() {
-        this.scrollListener.destroy();
-        this.scrollListener = null;
+        this.listener.destroy();
+        this.listener = null;
     }
 }
 
@@ -259,12 +260,13 @@ class ScrollListenerPassingState
     }
 
     onScroll(args: ScrollListenerCallbackArgs) {
+        let state = args.state;
         console.log("Scroll event fired.");
     }
 
     close() {
-        this.scrollListener.destroy();
-        this.scrollListener = null;
+        this.listener.destroy();
+        this.listener = null;
     }
 }
 
