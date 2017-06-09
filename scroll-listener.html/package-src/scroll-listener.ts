@@ -1,3 +1,5 @@
+import { EventThrottle, EventThrottleOptions } from '@brycemarshall/event-throttle';
+
 /**
  * Event arguments passed to the ScrollListener callback function following a scroll event.
  * @interface ScrollListenerCallbackArgs
@@ -55,15 +57,13 @@ export interface ScrollListenerOptions {
  */
 export class ScrollListener {
     /** @internal */
-    //private static _supportedContainers: string[] = ["DIV", "BODY", "FORM", "TBODY", "TFOOT", "THEAD", "HTML"];
+    private _throttle: EventThrottle;
     /** @internal */
     private _targetElement: HTMLElement;
     /** @internal */
     private _state: any;
     /** @internal */
     private _fn: ScrollListenerCallbackFunction;
-    /** @internal */
-    private _throtDur: number = 150;
     /** @internal */
     private _evtSrc: any[] = [];
     /** @internal */
@@ -85,13 +85,15 @@ export class ScrollListener {
 
         this._targetElement = targetElement;
         this._fn = callbackFunction;
-        this._handlerRef = (e) => { this.onScroll(e); };
+        this._handlerRef = (e) => { this._throttle.registerEvent(e);; };
 
+        let to: EventThrottleOptions = null;
         if (!options)
             this.walkTree(targetElement);
         else {
             this._state = options.state;
-            if (typeof(options.throttleDuration) == "number" && options.throttleDuration >= 0) this._throtDur = options.throttleDuration;
+            if (typeof (options.throttleDuration) == "number" && options.throttleDuration >= 0)
+                to = { throttleDuration: options.throttleDuration };
 
             if (ScrollListener.isScrollableContainer(options.container))
                 this._evtSrc.push(options.container);
@@ -102,6 +104,8 @@ export class ScrollListener {
             else
                 this.walkTree(targetElement, options.scope)
         }
+
+        this._throttle = new EventThrottle((s, e) => { this.onDownstreamEvent(s, e); }, to);
 
         for (let c of this._evtSrc)
             c.addEventListener("scroll", this._handlerRef);
@@ -118,11 +122,11 @@ export class ScrollListener {
      * @property enabled - Gets or sets the enabled state of the @type {ScrollListener} instance.
      */
     public get enabled(): boolean {
-        return this._enabled;
+        return this._throttle.enabled;
     }
 
     public set enabled(value: boolean) {
-        this._enabled = value;
+        this._throttle.enabled = value;
     }
 
     /**
@@ -130,6 +134,8 @@ export class ScrollListener {
      */
     public destroy() {
         if (this._evtSrc === null) return;
+        this._throttle.enabled = false;
+        this._throttle = null;
         this._targetElement = null;
         this._state = null;
         this._fn = null;
@@ -143,7 +149,7 @@ export class ScrollListener {
     }
 
     /**
-     * @function destroy - Returns true if the element is an HTMLElement that exposes an onscroll property, otherwise false.
+     * @function isScrollableContainer - Returns true if the element is an HTMLElement that exposes an onscroll property, otherwise false.
      * @param element -  The element to test.
      */
     public static isScrollableContainer(element: any): boolean {
@@ -163,38 +169,15 @@ export class ScrollListener {
         }
     }
 
-    /** @internal */
-    private onScroll(e: Event) {
-        if (this._fn === null || !this._enabled) return;
-
-        if (this._throtDur == 0)
-        {
-            this._backlog = 2;
-            this.processEvent(e, 1)
-            this._backlog = 0;
-        }
-        else if (++this._backlog == 1)
-            this.queueEvent(e);
-    }
-
-    /** @internal */
-    private queueEvent(e: Event) {
-        setTimeout((backlog: number) => {
-            this.processEvent(e, backlog);
-        }, this._throtDur, this._backlog);
-    }
-
-    /** @internal */
-    private processEvent(e: Event, backlog: number) {
+    private onDownstreamEvent(sender: EventThrottle, e: Event) {
         // _targetElement will be null in the event that destroy() was invoked prior to timeout.
-        if (this._targetElement === null || !this._enabled || typeof (e.srcElement.getBoundingClientRect) === "undefined") {
-            this._backlog = 0;
+        if (typeof (e.srcElement.getBoundingClientRect) === "undefined") {
+            this._throttle.flush();
             return;
         }
 
         let t = this._targetElement;
         let s: HTMLElement = <HTMLElement>e.srcElement;
-        this._backlog -= backlog;
         let rect = this._targetElement.getBoundingClientRect();
         let crect = e.srcElement.getBoundingClientRect();
         let offsets = this.getOffsets(e.srcElement);
@@ -233,10 +216,6 @@ export class ScrollListener {
         }
 
         this._fn(args);
-
-        // If there have been events since the timeout was queued, queue another to ensure the event always fires on the final scroll position.
-        if (this._backlog > 0)
-            this.queueEvent(e);
     }
 
     /** @internal */

@@ -1,5 +1,5 @@
 {
-  "name": "@brycemarshall/string-format",
+  "name": "@brycemarshall/scroll-listener-test",
   "version": "1.0.0",
   "description": "A typescript wrapper for Matt Esch's string-template package.",
   "main": "index",
@@ -16,7 +16,9 @@
   ],
   "author": "Bryce Marshall",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "@brycemarshall/event-throttle": "^1.0.0"
+  },
   "devDependencies": {
     "browserify": "latest"
   }
