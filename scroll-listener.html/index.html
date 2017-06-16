@@ -167,6 +167,10 @@
                         <td>scrolling:</td>
                         <td><span id="t-scrolling"></span></td>
                     </tr>
+                    <tr>
+                        <td>trace (event sequence):</td>
+                        <td><span id="t-trace"></span></td>
+                    </tr>                    
                 </table>
             </div>
         </div>
@@ -211,15 +215,20 @@
             <option value="4px">4px</option>
             <option value="8px">8px</option>
         </select>
-    </div>    
+    </div>
+    <div class="control-region">
+        <input id="cb-trace" type="checkbox">Invoke Trace Function<sup>4</sup>
+    </div>
     <p><sup>1</sup>Unconstrained scope will result in the ScrollListener attaching to the scroll events of both the inner and
         outer scrollable regions</p>
     <p><sup>2</sup>The throttle duration is minimum delay that the ScrollListener enforces between raising sequential scroll
         events (the default duration is 150 milliseconds). Throttling scroll events can help make a busy UI feel more responsive
         by avoiding unnecessarily processing every DOM scroll event. ScrollListener will ALWAYS raise an event in response
-        to the final scroll position of the target element. Configuring a throttle delay of zero (0) will disable throttling, 
+        to the final scroll position of the target element. Configuring a throttle delay of zero (0) will disable throttling,
         resulting in every scroll event being processed.</p>
     <p><sup>3</sup>ScrollListener compensates for borders, which change the size of the viewport scroll window.</p>
+    <p><sup>4</sup>When specified, ScrollListener will separately invoke a trace function for every upstream (source) scroll event as it is raised, 
+    irrespective of the throttle duration. The Trace Function is always invoked before any downstream (throttled) event processing begins.</p>
 </body>
 
 </html>

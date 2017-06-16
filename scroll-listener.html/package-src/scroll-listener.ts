@@ -29,6 +29,13 @@ export interface ScrollListenerCallbackArgs {
 export type ScrollListenerCallbackFunction = (args: ScrollListenerCallbackArgs) => void;
 
 /**
+ * @function ScrollListenerTraceCallbackFunction
+ * @param sender - the @type {ScrollListener} instance that invoked the callback.
+ * @param event - the original scroll event.
+ */
+export type ScrollListenerTraceCallbackFunction = (sender: ScrollListener, event: Event) => void;
+
+/**
  * Specifies ScrollListener configuration options.
  * @interface ScrollListenerOptions
  * @property {HTMLElement} container - When specified, ScrollListener will listen for 'onscroll' events on 'container' only. 
@@ -40,6 +47,8 @@ export type ScrollListenerCallbackFunction = (args: ScrollListenerCallbackArgs) 
  * The 'scope' property defers to 'container' and 'containers'.
  * @property {number} throttleDuration - When specified, defines the duration (in milliseconds) of the minimum delay in between 
     processing scroll events (the default is 150 milliseconds).
+ * @property {ScrollListenerTraceCallbackFunction} traceFunction - An optional trace function that, when specified, will be invoked by the ScrollListener
+ * instance immediately upon receiving an upstream scroll event, and before the upstream event is subject to any further downstream processing.
  * @property {any} state - When specified, defines optional client state to be passed to the callback function.
  */
 export interface ScrollListenerOptions {
@@ -47,6 +56,7 @@ export interface ScrollListenerOptions {
     containers?: HTMLElement[];
     scope?: HTMLElement;
     throttleDuration?: number;
+    traceFunction?: ScrollListenerTraceCallbackFunction;
     state?: any;
 }
 
@@ -63,13 +73,13 @@ export class ScrollListener {
     /** @internal */
     private _state: any;
     /** @internal */
-    private _fn: ScrollListenerCallbackFunction;
+    private _fn: ScrollListenerCallbackFunction = null;
+    /** @internal */
+    private _traceFn: ScrollListenerTraceCallbackFunction = null;
     /** @internal */
     private _evtSrc: any[] = [];
     /** @internal */
     private _handlerRef: any;
-    /** @internal */
-    private _backlog: number = 0;
     /** @internal */
     private _enabled: boolean = true;
 
@@ -85,7 +95,7 @@ export class ScrollListener {
 
         this._targetElement = targetElement;
         this._fn = callbackFunction;
-        this._handlerRef = (e) => { this._throttle.registerEvent(e);; };
+        this._handlerRef = (e) => { if (this._traceFn) this._traceFn(this, e); this._throttle.registerEvent(e); };
 
         let to: EventThrottleOptions = null;
         if (!options)
@@ -94,6 +104,9 @@ export class ScrollListener {
             this._state = options.state;
             if (typeof (options.throttleDuration) == "number" && options.throttleDuration >= 0)
                 to = { throttleDuration: options.throttleDuration };
+
+            if (typeof (options.traceFunction) == "function")
+                this._traceFn = options.traceFunction;
 
             if (ScrollListener.isScrollableContainer(options.container))
                 this._evtSrc.push(options.container);
@@ -127,6 +140,14 @@ export class ScrollListener {
 
     public set enabled(value: boolean) {
         this._throttle.enabled = value;
+    }
+
+    public get backlog(): number {
+        return this._throttle.throttled;
+    }
+
+    public get isScrolling(): boolean {
+        return this._throttle.isThrottling;
     }
 
     /**
@@ -211,7 +232,7 @@ export class ScrollListener {
                 rel.right <= (e.srcElement.clientWidth + offsets.x)
             ),
             relativeRectangle: rel,
-            scrolling: this._backlog > 0,
+            scrolling: this._throttle.isThrottling,
             state: this._state
         }
 

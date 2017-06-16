@@ -39,6 +39,7 @@ export interface ScrollListenerCallbackArgs {
  * @param args - The callback arguments as an instance of the @type {ScrollListenerCallbackArgs}.
  */
 export declare type ScrollListenerCallbackFunction = (args: ScrollListenerCallbackArgs) => void;
+export declare type ScrollListenerTraceCallbackFunction = (sender: ScrollListener, event: Event) => void;
 /**
  * Specifies ScrollListener configuration options.
  * @interface ScrollListenerOptions
@@ -50,8 +51,9 @@ export declare type ScrollListenerCallbackFunction = (args: ScrollListenerCallba
  * above its specified target element up to and including 'scope'.
  * The 'scope' property defers to 'container' and 'containers'.
  * @property {number} throttleDuration - When specified, defines the duration (in milliseconds) of the minimum delay in between
-    processing scroll events (the default is 150 milliseconds). Specifying a throttle duration of zero (0) will disable throttling, resulting in
-    every scroll event being processed.
+    processing scroll events (the default is 150 milliseconds).
+ * @property {ScrollListenerTraceCallbackFunction} traceFunction - An optional trace function that, when specified, will be invoked by the ScrollListener
+ * instance immediately upon receiving an upstream scroll event, and before the upstream event is subject to any further downstream processing.
  * @property {any} state - When specified, defines optional client state to be passed to the callback function.
  */
 export interface ScrollListenerOptions {
@@ -59,6 +61,7 @@ export interface ScrollListenerOptions {
     containers?: HTMLElement[];
     scope?: HTMLElement;
     throttleDuration?: number;
+    traceFunction?: ScrollListenerTraceCallbackFunction;
     state?: any;
 }
 /**
@@ -262,6 +265,39 @@ class ScrollListenerPassingState
     onScroll(args: ScrollListenerCallbackArgs) {
         let state = args.state;
         console.log("Scroll event fired.");
+    }
+
+    close() {
+        this.listener.destroy();
+        this.listener = null;
+    }
+}
+
+```
+
+# Usage - Trace Function
+
+An example of using a trace function to enable processing of all raw upstream source events irrespective of downstream throttling.
+
+```ts
+class ScrollListenerTraceFunction
+{
+    private listener: ScrollListener;
+
+    constructor(myState: any){
+        let target = document.getElementById("elementToTrack");
+        let scrollContainer = document.getElementById("scroll-container");
+        this.listener = new ScrollListener(target, (args) => { this.onScroll(args) }, { container: scrollContainer, 
+            traceFunction: (sender, event) => { this.onTrace(sender, event) } });
+    }
+
+    onScroll(args: ScrollListenerCallbackArgs) {
+        let state = args.state;
+        console.log("Scroll event fired.");
+    }
+
+    onTrace(sender: ScrollListener, event: Event) {
+        console.log("Trace callback invoked.");
     }
 
     close() {

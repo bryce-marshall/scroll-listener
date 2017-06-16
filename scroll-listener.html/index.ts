@@ -9,6 +9,7 @@ export class ScrollListenerTest {
     private listener: ScrollListener;
     private scaleX: number;
     private scaleY: number;
+    private sequence: number = 0;
 
     constructor() {
         this.target = document.getElementById("target");
@@ -19,6 +20,11 @@ export class ScrollListenerTest {
         let el = document.getElementById("cb-scope");
         el.attributes["checked"] = null;
         el.addEventListener("click", () => { this.onConfigChanged() });
+
+        el = document.getElementById("cb-trace");
+        el.attributes["checked"] = null;
+        el.addEventListener("click", () => { this.onConfigChanged() });
+
         this.addEventListener("click", (e) => { this.onNudge(e) }, "ngu", "ngd", "ngl", "ngr");
         this.addEventListener("change", () => { this.onConfigChanged() }, "sel-throttle");
         this.addEventListener("change", (e) => { this.onBorderChanged(e) }, "sel-border");
@@ -34,15 +40,19 @@ export class ScrollListenerTest {
     }
 
     private createListener() {
+        document.getElementById("t-trace").innerHTML = "";
+        this.sequence = 0;
+
         if (this.listener != null)
             this.listener.destroy();
 
-        let el: any = document.getElementById("cb-scope");
-        let scoped = el.checked;
-        el = document.getElementById("sel-throttle");
-        let throttle: number = parseInt(el.value);
+        let options: ScrollListenerOptions = { throttleDuration: parseInt((<any>document.getElementById("sel-throttle")).value) };
+        if ((<any>document.getElementById("cb-scope")).checked)
+            options.container = this.viewPort;
 
-        let options: ScrollListenerOptions = scoped ? { container: this.viewPort, throttleDuration: throttle } : { throttleDuration: throttle };
+        if ((<any>document.getElementById("cb-trace")).checked)
+            options.traceFunction = (sender, e) => { this.onTrace(sender, e); };
+
         this.listener = new ScrollListener(this.target, (args) => { this.onScroll(args) }, options);
     }
 
@@ -77,13 +87,17 @@ export class ScrollListenerTest {
         }
     }
 
-    onBorderChanged(e){
+    onBorderChanged(e) {
         this.viewPort.style.borderWidth = e.target.value;
         this.target.scrollIntoView();
     }
 
     onConfigChanged() {
         this.createListener();
+    }
+
+    onTrace(sender: ScrollListener, e: Event) {
+        document.getElementById("t-trace").innerHTML = (++this.sequence).toString();
     }
 
     onScroll(args: ScrollListenerCallbackArgs) {
@@ -103,6 +117,9 @@ export class ScrollListenerTest {
             this.mapViewport.removeAttribute("inview");
             this.mapViewport.removeAttribute("inviewport");
         }
+
+        if (!args.scrolling)
+            this.sequence = 0;
     }
 
     onResize() {
