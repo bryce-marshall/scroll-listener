@@ -123,7 +123,7 @@ class ScrollListenerUnknownScope
 
     constructor(){
         let target = document.getElementById("elementToTrack");
-        this.listener = new ScrollListener.Create(target, (args) => { this.onScroll(args) });
+        this.listener = new ScrollListener(target, (args) => { this.onScroll(args) });
     }
 
     onScroll(args: ScrollListenerCallbackArgs) {
