@@ -198,7 +198,7 @@ export declare class ScrollListener {
 ```
 # Usage - General
 
-ScrollListener instances are created by invoking the ScrollListener constructor and passing (at a minimum) the target element to be tracked, an
+ScrollListener instances are created by invoking the ScrollListener constructor and passing (at a minimum) the target element to be tracked, a
 ScrollEventTargetCollection containing a set of scroll event sources, and a callback function to be invoked in response to scroll events.
 Further configuration is possible by passing an object implementing ScrollListenerOptions.
 
