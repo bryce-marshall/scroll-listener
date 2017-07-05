@@ -14,42 +14,99 @@ http://plnkr.co/2RvsM8BmD5bzSbUqr7pw
 ```ts
 
 /**
+ * Represents a scroll event source that ScrollListener can subscribe to.
+ * @interface IScrollEventTarget
+ */
+export interface IScrollEventTarget extends EventTarget {
+    onscroll(this: Document | Element | Window, event: UIEvent): any;
+}
+/**
+ * A collection of objects implementing IScrollEventTarget which can be used to create a new ScrollListener instance.
+ * @class ScrollEventTargetCollection
+ */
+export declare class ScrollEventTargetCollection {
+    private _members;
+    /**
+     * Creates a new ScrollEventTargetCollection instance.
+     * @param items The IScrollEventTarget instances to add to the new collection.
+     */
+    constructor(...items: IScrollEventTarget[]);
+    /**
+     * Creates and automatically populates a ScrollEventTargetCollection with IScrollEventTarget parents of target.
+     * @method auto
+     * @param target The HTMLElement that will be tracked by a ScrollListener instance.
+     * @param scopeLimiter Optional. When specified, limits the set of IScrollEventTarget containers that will be resolved by this method
+     * to all containers of parentElement up to and including scopeLimiter.
+     */
+    static auto(target: HTMLElement, scopeLimiter?: HTMLElement): ScrollEventTargetCollection;
+    /**
+     * Returns the number of IScrollEventTarget instances within the collection.
+     * @property count
+     */
+    readonly count: number;
+    /**
+     * Returns the IScrollEventTarget at the specified index.
+     * @function get
+     * @param index
+     * @throws If index is null, less than 0, or greater than this.count.
+     */
+    get(index: number): IScrollEventTarget;
+    /**
+     * Adds an IScrollEventTarget instance to the collection.
+     * @method add
+     * @param eventTarget The instance to add.
+     */
+    add(eventTarget: string | IScrollEventTarget): void;
+    /**
+     * Returns an array of the IScrollEventTarget instances in the collection.
+     * @function toArray
+     */
+    toArray(): IScrollEventTarget[];
+}
+/**
  * Event arguments passed to the ScrollListener callback function following a scroll event.
- * @interface ScrollListenerCallbackArgs
- * @property {HTMLElement} container - The container element that was scrolled to trigger the event.
- * @property {HTMLElement} target - The target element being tracked.
- * @property {ClientRect} relativeRectangle - A rectangle describing the position of the target element relative to the top left position of
- * the bounding client rectangle of 'container' (container.getBoundingClientRect().
- * @property {boolean} inView - True if any portion of the target element is visible within the viewport, otherwise false.
- * @property {boolean} inViewport - True if the entire target element is visible within the viewport, otherwise false.
+ * @interface ScrollListenerEventArgs
+ * @property {Element} source The container that was scrolled to trigger the event.
+ * @property {string} sourceType A string describing the type of event source (element, document, or window).
+ * @property {UIEvent} sourceEvent The original upstream UIEvent.
+ * @function getRelativeRectangle Returns a ClientRect instance describing the position of target relative to a specified element, or if no element is specified then relative to the container that fired the event.
+ * @property {ClientRect} intersectionalRectangle A ClientRect instance describing the portion of the target element that is visible within the container that fired the event.
+ * @property {boolean} intersectsSource True if any portion of the target element is visible within the container that fired the event, otherwise false.
+ * @property {boolean} withinSource - True if the entire target element is visible within the container that fired the event, otherwise false.
+ * @property {boolean} intersectsScope True if any portion of the target element is visible within the topmost scroll container that the ScrollListener instance is monitoring, otherwise false.
+ * @property {boolean} withinScope - True if the entire target element is visible within the topmost scroll container that the ScrollListener instance is monitoring, otherwise false.
  * @property {boolean} scrolling - True if the target element is still scrolling at time the event is processed, otherwise false.
  * @property {any} state - Client state referenced by the ScrollListener instance.
  */
-export interface ScrollListenerCallbackArgs {
-    container: HTMLElement;
-    target: HTMLElement;
-    relativeRectangle: ClientRect;
-    inView: boolean;
-    inViewport: boolean;
-    scrolling: boolean;
-    state: any;
+export interface ScrollListenerEventArgs {
+    readonly source: Document | Element | Window;
+    readonly sourceType: string;
+    readonly sourceEvent: UIEvent;
+    getRelativeRectangle(other?: Element): ClientRect;
+    readonly intersectionalRectangle: ClientRect;
+    readonly intersectsSource: boolean;
+    readonly withinSource: boolean;
+    readonly intersectsScope: boolean;
+    readonly withinScope: boolean;
+    readonly scrolling: boolean;
+    readonly state: any;
 }
 /**
+ * The function invoked by ScrollListener instances when forwarding a downstream scroll event.
  * @function ScrollListenerCallbackFunction
- * @param args - The callback arguments as an instance of the @type {ScrollListenerCallbackArgs}.
+ * @param sender - the ScrollListener instance that invoked the callback.
+ * @param args - The callback arguments as an instance of the ScrollListenerCallbackArgs.
  */
-export declare type ScrollListenerCallbackFunction = (args: ScrollListenerCallbackArgs) => void;
+export declare type ScrollListenerCallbackFunction = (sender: ScrollListener, args: ScrollListenerCallbackArgs) => void;
+/**
+ * The function optionally invoked by ScrollListener instances whenever an upstream scroll event occurs.
+ * @function ScrollListenerTraceCallbackFunction
+ * @param sender - the ScrollListener instance that invoked the callback.
+ * @param event - the original scroll event.
+ */
 export declare type ScrollListenerTraceCallbackFunction = (sender: ScrollListener, event: Event) => void;
 /**
  * Specifies ScrollListener configuration options.
- * @interface ScrollListenerOptions
- * @property {HTMLElement} container - When specified, ScrollListener will listen for 'onscroll' events on 'container' only.
- * The 'container' property takes priority over 'containers' and 'scope'.
- * @property {HTMLElement[]} containers - When specified, ScrollListener will listen for 'onscroll' events on all elements in the 'containers' array.
- * The 'containers' property takes priority over 'scope' but defers to 'container'.
- * @property {HTMLElement} scope - When specified, ScrollListener will listen for 'onscroll' events on all parent container elements in the DOM tree
- * above its specified target element up to and including 'scope'.
- * The 'scope' property defers to 'container' and 'containers'.
  * @property {number} throttleDuration - When specified, defines the duration (in milliseconds) of the minimum delay in between
     processing scroll events (the default is 150 milliseconds).
  * @property {ScrollListenerTraceCallbackFunction} traceFunction - An optional trace function that, when specified, will be invoked by the ScrollListener
@@ -57,60 +114,106 @@ export declare type ScrollListenerTraceCallbackFunction = (sender: ScrollListene
  * @property {any} state - When specified, defines optional client state to be passed to the callback function.
  */
 export interface ScrollListenerOptions {
-    container?: HTMLElement;
-    containers?: HTMLElement[];
-    scope?: HTMLElement;
     throttleDuration?: number;
     traceFunction?: ScrollListenerTraceCallbackFunction;
     state?: any;
 }
 /**
- * @class ScrollListener
  * A helper class that that invokes a callback function when a specified target element is scrolled.
- * ScrollListener works by attaching to the scroll event of either specific container elements, one or more of the target element's parent container elements.
+ * ScrollListener works by subscribing to the scroll event of one or more of the target element's parent containers.
+ * ScrollListener enables easy throttling of the upstream scroll events that it subscribes to (to prevent the UI from being overloaded)
+ * and also provides client code with useful information about the target element, including its visibility and position relative to
+ * its container elements.
+ * @class ScrollListener
  */
 export declare class ScrollListener {
+    /** @internal */
+    private _throttle;
+    /** @internal */
+    private _targetElement;
+    /** @internal */
+    private _state;
+    /** @internal */
+    private _fn;
+    /** @internal */
+    private _traceFn;
+    /** @internal */
+    private _baseEventSrc;
+    /** @internal */
+    private _enabled;
     /**
-     * @constructor
-     * @param targetElement - The element being watched.
-     * @param callbackFunction - The @type {ScrollListenerCallbackFunction} function to invoke in response to a scroll event.
-     * @param options - An object implementing @type {ScrollListenerOptions} that specifies additional configuration options.
-    */
-    constructor(targetElement: HTMLElement, callbackFunction: ScrollListenerCallbackFunction, options?: ScrollListenerOptions);
-    /**
-     * @property targetElement - Returns the element that the @type {ScrollListener} instance is tracking.
+     * Creates a new ScrollListener instance.
+     * @param target The element to track.
+     * @param eventSources The scroll-event sources that the ScrollListener instance will intercept the scroll events of.
+     * @param callbackFunction The function that the ScrollListener instance will forward downstream (throttled) scroll events to.
+     * @param options Additional configuration options.
      */
-    readonly targetElement: HTMLElement;
+    constructor(target: Element, eventSources: ScrollEventTargetCollection, callbackFunction: ScrollListenerCallbackFunction, options?: ScrollListenerOptions);
     /**
-     * @property enabled - Gets or sets the enabled state of the @type {ScrollListener} instance.
+     * Returns the element that the ScrollListener instance is tracking.
+     * @property targetElement
+     */
+    readonly targetElement: Element;
+    /**
+     * Gets or sets the enabled state of the ScrollListener instance.
+     * @property enabled
      */
     enabled: boolean;
     /**
-     * @method destroy - Detaches all event listeners and releases all resources
+     * Returns the current number of throttled upstream events.
+     * ScrollListener does not guarantee to forward all throttled events to the downstream handler, however it will always
+     * forward the most recent event and guarantees to forward the last event in each sequence.
+     * @property backlog
+     */
+    readonly backlog: number;
+    /**
+     * Returns true if any scroll-event source that the ScrollListener instance has subscribed to is currently scrolling, otherwise returns false.
+     * @property isScrolling.
+     */
+    readonly isScrolling: boolean;
+    /**
+     * Detaches all event listeners and releases all resources.
+     * @method destroy
      */
     destroy(): void;
     /**
-     * @function destroy - Returns true if the element is an HTMLElement that exposes an onscroll property, otherwise false.
-     * @param element -  The element to test.
+     * Returns true if the element exposes a getBoundingClientRect method an onscroll property, and addEventListener and removeEventListener methods,
+     * otherwise false.
+     * @function isScrollableContainer
+     * @param element The element to test.
      */
     static isScrollableContainer(element: any): boolean;
+    /** @internal */
+    private onDownstreamEvent(sender, e, source);
+    /** @internal */
+    private getEventArgs(event, source);
+    /** @internal */
+    private getScopedIntersectionalRectangle();
+    /** @internal */
+    private getIntersectionalRectangle(child, container);
+    /** @internal */
+    private getRelativeRectangle(rect, crect);
 }
-
 
 ```
 # Usage - General
 
-ScrollListener instances are created by invoking the ScrollListener constructor and passing (at a minimum) the target element to be tracked, and a callback 
-function to be invoked in response to scroll events. Further configuration is possible by passing an object implementing ScrollListenerOptions.
+ScrollListener instances are created by invoking the ScrollListener constructor and passing (at a minimum) the target element to be tracked, an
+ScrollEventTargetCollection containing a set of scroll event sources, and a callback function to be invoked in response to scroll events.
+Further configuration is possible by passing an object implementing ScrollListenerOptions.
 
-ScrollListener can attach to a specified scroll container(s), but if none are specified it will walk the DOM tree and attach to parent scroll containers of the
-target element. This is useful in scenarios where the target's scroll container cannot be known definitively/reliably at design-time 
+ScrollEventTargetCollection instances can be populated with specific scroll containers, however invoking its static 'auto' function will
+automatically populate a new ScrollEventTargetCollection instance with all scroll containers that are parents of the specified target element.
+This can be useful in scenarios where the target's scroll container cannot be known definitively/reliably at design-time 
 (as may be the case when developing within frameworks such as Ionic).
 
-ScrollListener implements event throttling by enforcing a minimum delay between sequential scroll events (the default throttle duration is 150 milliseconds). Throttling scroll events can help make a busy UI feel more responsive by avoiding unnecessarily processing every source scroll event that is raised by the DOM.
+ScrollListener implements event throttling by enforcing a minimum delay between sequential scroll events (the default throttle duration is 150 milliseconds. Throttling scroll events can help make a busy UI feel more responsive by avoiding unnecessarily processing every source scroll event that is raised by the DOM.
+
 ScrollListener will ALWAYS raise an event in response to the final scroll position of the target element.
 
-If specified, client state will be attached to every scroll event raised by ScrollListener.
+In addition to event throttling and the automatic resolution of parent scroll containers, ScrollListener event arguments expose useful information
+such as the position of the target element relative to its scroll containers, whether or not the target element is currently visible within the
+scrolling viewport, and optional client state.
 
 # Usage - Unconstrained Scope
 
@@ -123,7 +226,7 @@ class ScrollListenerUnknownScope
 
     constructor(){
         let target = document.getElementById("elementToTrack");
-        this.listener = new ScrollListener(target, (args) => { this.onScroll(args) });
+        this.listener = new ScrollListener(target, ScrollEventTargetCollection.auto(target), (sender, args) => { this.onScroll(sender, args) });
     }
 
     onScroll(args: ScrollListenerCallbackArgs) {
@@ -150,7 +253,7 @@ class ScrollListenerScoped
     constructor(){
         let target = document.getElementById("elementToTrack");
         let boundingElement = document.getElementById("boundingElement");
-        this.listener = new ScrollListener(target, (args) => { this.onScroll(args) }, { scope: boundingElement });
+        this.listener = new ScrollListener(target, ScrollEventTargetCollection.auto(target, boundingElement), (sender, args) => { this.onScroll(sender, args) });
     }
 
     onScroll(args: ScrollListenerCallbackArgs) {
@@ -177,7 +280,7 @@ class ScrollListenerKnownContainer
     constructor(){
         let target = document.getElementById("elementToTrack");
         let scrollContainer = document.getElementById("scroll-container");
-        this.listener = new ScrollListener(target, (args) => { this.onScroll(args) }, { container: scrollContainer });
+        this.listener = new ScrollListener(target, new ScrollEventTargetCollection(scrollContainer), (sender, args) => { this.onScroll(sender, args) });
     }
 
     onScroll(args: ScrollListenerCallbackArgs) {
@@ -205,7 +308,7 @@ class ScrollListenerMultipleContainers
         let target = document.getElementById("elementToTrack");
         let container1 = document.getElementById("scroll-container1");
         let container2 = document.getElementById("scroll-container2");
-        this.listener = new ScrollListener(target, (args) => { this.onScroll(args) }, { containers: [ container1, container2 ] });
+        this.listener = new ScrollListener(target, new ScrollEventTargetCollection(container1, container2), (sender, args) => { this.onScroll(sender, args) });
     }
 
     onScroll(args: ScrollListenerCallbackArgs) {
@@ -232,7 +335,7 @@ class ScrollListenerThrottleDuration
     constructor(){
         let target = document.getElementById("elementToTrack");
         let scrollContainer = document.getElementById("scroll-container");
-        this.listener = new ScrollListener(target, (args) => { this.onScroll(args) }, { container: scrollContainer, throttleDuration: 300 });
+        this.listener = new ScrollListener(target,  new ScrollEventTargetCollection(scrollContainer), (sender, args) => { this.onScroll(sender, args) }, { throttleDuration: 300 });
     }
 
     onScroll(args: ScrollListenerCallbackArgs) {
@@ -259,7 +362,7 @@ class ScrollListenerPassingState
     constructor(myState: any){
         let target = document.getElementById("elementToTrack");
         let scrollContainer = document.getElementById("scroll-container");
-        this.listener = new ScrollListener(target, (args) => { this.onScroll(args) }, { container: scrollContainer, state: myState });
+        this.listener = new ScrollListener(target,   new ScrollEventTargetCollection(scrollContainer), (sender, args) => { this.onScroll(sender, args) }, { state: myState });
     }
 
     onScroll(args: ScrollListenerCallbackArgs) {
@@ -287,8 +390,8 @@ class ScrollListenerTraceFunction
     constructor(myState: any){
         let target = document.getElementById("elementToTrack");
         let scrollContainer = document.getElementById("scroll-container");
-        this.listener = new ScrollListener(target, (args) => { this.onScroll(args) }, { container: scrollContainer, 
-            traceFunction: (sender, event) => { this.onTrace(sender, event) } });
+        this.listener = new ScrollListener(target, new ScrollEventTargetCollection(scrollContainer), (sender, args) => { this.onScroll(sender, args) }, { 
+        traceFunction: (sender, event) => { this.onTrace(sender, event) } });
     }
 
     onScroll(args: ScrollListenerCallbackArgs) {

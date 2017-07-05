@@ -3,13 +3,25 @@ import { EventThrottle, EventThrottleOptions } from '@brycemarshall/event-thrott
 // TODO: Border offsets for ltr language browsers
 // TODO: Do right and bottom border offsets need to be applied under circumstances other than rtl languages?
 
+/**
+ * Represents a scroll event source that ScrollListener can subscribe to.
+ * @interface IScrollEventTarget
+ */
 export interface IScrollEventTarget extends EventTarget {
     onscroll(this: Document | Element | Window, event: UIEvent): any;
 }
 
+/**
+ * A collection of objects implementing IScrollEventTarget which can be used to create a new ScrollListener instance.
+ * @class ScrollEventTargetCollection
+ */
 export class ScrollEventTargetCollection {
     private _members: IScrollEventTarget[];
 
+    /**
+     * Creates a new ScrollEventTargetCollection instance.
+     * @param items The IScrollEventTarget instances to add to the new collection.
+     */
     constructor(...items: IScrollEventTarget[]) {
         this._members = new Array<IScrollEventTarget>(items.length);
         for (let i = 0; i < items.length; i++) {
@@ -18,27 +30,43 @@ export class ScrollEventTargetCollection {
             this._members[i] = e;
         }
     }
-
+    /**
+     * Creates and automatically populates a ScrollEventTargetCollection with IScrollEventTarget parents of target.
+     * @method auto
+     * @param target The HTMLElement that will be tracked by a ScrollListener instance.
+     * @param scopeLimiter Optional. When specified, limits the set of IScrollEventTarget containers that will be resolved by this method
+     * to all containers of parentElement up to and including scopeLimiter.
+     */
     static auto(target: HTMLElement, scopeLimiter?: HTMLElement): ScrollEventTargetCollection {
         if (target == null) throw new Error('The parameter "target" cannot be null.')
         let result = new ScrollEventTargetCollection();
 
         target = target !== scopeLimiter ? target.parentElement : null;
         while (target != null) {
-            result.append(target);
+            result.add(target);
             target = target !== scopeLimiter ? target.parentElement : null;
         }
 
         if (scopeLimiter == null)
-            result.append(window);
+            result.add(window);
 
         return result;
     }
 
+    /**
+     * Returns the number of IScrollEventTarget instances within the collection.
+     * @property count
+     */
     get count(): number {
         return this._members.length;
     }
 
+    /**
+     * Returns the IScrollEventTarget at the specified index.
+     * @function get
+     * @param index 
+     * @throws If index is null, less than 0, or greater than this.count.
+     */
     get(index: number): IScrollEventTarget {
         if (index == null) throw new Error('The parameter "index" cannot be null.')
         if (index < 0 || index >= this.count) throw new Error('The value of the parameter "index" must be greater-than-or-equal to 0 and less than count.')
@@ -46,7 +74,12 @@ export class ScrollEventTargetCollection {
         return this._members[index];
     }
 
-    append(eventTarget: string | IScrollEventTarget) {
+    /**
+     * Adds an IScrollEventTarget instance to the collection.
+     * @method add
+     * @param eventTarget The instance to add.
+     */
+    add(eventTarget: string | IScrollEventTarget) {
         if (eventTarget == null) throw new Error('The parameter "eventTarget" cannot be null.')
         if (typeof (eventTarget) != "string")
             this._members = this._members.concat(eventTarget);
@@ -57,6 +90,10 @@ export class ScrollEventTargetCollection {
         }
     }
 
+    /**
+     * Returns an array of the IScrollEventTarget instances in the collection.
+     * @function toArray
+     */
     toArray(): IScrollEventTarget[] {
         let result = new Array<IScrollEventTarget>(this._members.length);
         for (let i = 0; i < this._members.length; i++)
@@ -68,22 +105,23 @@ export class ScrollEventTargetCollection {
 
 /**
  * Event arguments passed to the ScrollListener callback function following a scroll event.
- * @interface ScrollListenerCallbackArgs
- * @property {Element} container - The container that was scrolled to trigger the event.
- * @property {Element} target - The target element being tracked.
- * @property {ClientRect} relativeRectangle - A rectangle describing the position of the target element relative to the top left position of 
- * the bounding client rectangle of 'container' (container.getBoundingClientRect().
- * @property {boolean} inView - True if any portion of the target element is visible within the viewport, otherwise false.
- * @property {boolean} inViewport - True if the entire target element is visible within the viewport, otherwise false.
+ * @interface ScrollListenerEventArgs
+ * @property {Element} source The container that was scrolled to trigger the event.
+ * @property {string} sourceType A string describing the type of event source (element, document, or window).
+ * @property {UIEvent} sourceEvent The original upstream UIEvent.
+ * @function getRelativeRectangle Returns a ClientRect instance describing the position of target relative to a specified element, or if no element is specified then relative to the container that fired the event.
+ * @property {ClientRect} intersectionalRectangle A ClientRect instance describing the portion of the target element that is visible within the container that fired the event.
+ * @property {boolean} intersectsSource True if any portion of the target element is visible within the container that fired the event, otherwise false.
+ * @property {boolean} withinSource - True if the entire target element is visible within the container that fired the event, otherwise false.
+ * @property {boolean} intersectsScope True if any portion of the target element is visible within the topmost scroll container that the ScrollListener instance is monitoring, otherwise false.
+ * @property {boolean} withinScope - True if the entire target element is visible within the topmost scroll container that the ScrollListener instance is monitoring, otherwise false.
  * @property {boolean} scrolling - True if the target element is still scrolling at time the event is processed, otherwise false.
  * @property {any} state - Client state referenced by the ScrollListener instance.
  */
-export interface ScrollListenerCallbackArgs {
+export interface ScrollListenerEventArgs {
     readonly source: Document | Element | Window;
-    // readonly target: Element;
     readonly sourceType: string;
     readonly sourceEvent: UIEvent;
-    // // Relative to other, or if other not specified then relative to this.container
     getRelativeRectangle(other?: Element): ClientRect;
     readonly intersectionalRectangle: ClientRect;
     readonly intersectsSource: boolean;
@@ -95,28 +133,23 @@ export interface ScrollListenerCallbackArgs {
 }
 
 /**
+ * The function invoked by ScrollListener instances when forwarding a downstream scroll event.
  * @function ScrollListenerCallbackFunction
- * @param args - The callback arguments as an instance of the @type {ScrollListenerCallbackArgs}.
+ * @param sender - the ScrollListener instance that invoked the callback.
+ * @param args - The callback arguments as an instance of the ScrollListenerCallbackArgs.
  */
-export type ScrollListenerCallbackFunction = (sender: ScrollListener, args: ScrollListenerCallbackArgs) => void;
+export type ScrollListenerCallbackFunction = (sender: ScrollListener, args: ScrollListenerEventArgs) => void;
 
 /**
+ * The function optionally invoked by ScrollListener instances whenever an upstream scroll event occurs.
  * @function ScrollListenerTraceCallbackFunction
- * @param sender - the @type {ScrollListener} instance that invoked the callback.
+ * @param sender - the ScrollListener instance that invoked the callback.
  * @param event - the original scroll event.
  */
 export type ScrollListenerTraceCallbackFunction = (sender: ScrollListener, event: Event) => void;
 
 /**
  * Specifies ScrollListener configuration options.
- * @interface ScrollListenerOptions
- * @property {EventTarget} container - When specified, ScrollListener will listen for 'onscroll' events on 'container' only. 
- * The 'container' property takes priority over 'containers' and 'scope'.
- * @property {EventTarget[]} containers - When specified, ScrollListener will listen for 'onscroll' events on all elements in the 'containers' array.
- * The 'containers' property takes priority over 'scope' but defers to 'container'.
- * @property {Element} scope - When specified, ScrollListener will listen for 'onscroll' events on all parent container elements in the DOM tree 
- * above its specified target element up to and including 'scope'.
- * The 'scope' property defers to 'container' and 'containers'.
  * @property {number} throttleDuration - When specified, defines the duration (in milliseconds) of the minimum delay in between 
     processing scroll events (the default is 150 milliseconds).
  * @property {ScrollListenerTraceCallbackFunction} traceFunction - An optional trace function that, when specified, will be invoked by the ScrollListener
@@ -130,9 +163,12 @@ export interface ScrollListenerOptions {
 }
 
 /**
- * @class ScrollListener
  * A helper class that that invokes a callback function when a specified target element is scrolled.
- * ScrollListener works by attaching to the scroll event of either specific container elements, one or more of the target element's parent container elements.
+ * ScrollListener works by subscribing to the scroll event of one or more of the target element's parent containers.
+ * ScrollListener enables easy throttling of the upstream scroll events that it subscribes to (to prevent the UI from being overloaded)
+ * and also provides client code with useful information about the target element, including its visibility and position relative to 
+ * its container elements.
+ * @class ScrollListener
  */
 export class ScrollListener {
     /** @internal */
@@ -145,11 +181,18 @@ export class ScrollListener {
     private _fn: ScrollListenerCallbackFunction = null;
     /** @internal */
     private _traceFn: ScrollListenerTraceCallbackFunction = null;
-
+    /** @internal */
     private _baseEventSrc: ScrollEventSource;
+    /** @internal */
     private _enabled: boolean = true;
-    static _nonce: number = 1;
 
+    /**
+     * Creates a new ScrollListener instance.
+     * @param target The element to track.
+     * @param eventSources The scroll-event sources that the ScrollListener instance will intercept the scroll events of.
+     * @param callbackFunction The function that the ScrollListener instance will forward downstream (throttled) scroll events to.
+     * @param options Additional configuration options.
+     */
     constructor(target: Element, eventSources: ScrollEventTargetCollection, callbackFunction: ScrollListenerCallbackFunction, options?: ScrollListenerOptions) {
         if (target == null) throw new Error('The parameter "target" cannot be null.');
         if (eventSources == null) throw new Error('The parameter "eventSources" cannot be null.');
@@ -166,7 +209,6 @@ export class ScrollListener {
                 this._traceFn = options.traceFunction;
         }
 
-        let nonce = ScrollListener._nonce++;
         this._throttle = new EventThrottle((s, e, state) => { this.onDownstreamEvent(s, <UIEvent>e, state); }, to);
         this._targetElement = target;
         this._fn = callbackFunction;
@@ -183,14 +225,16 @@ export class ScrollListener {
     }
 
     /**
-     * @property targetElement - Returns the element that the @type {ScrollListener} instance is tracking.
+     * Returns the element that the ScrollListener instance is tracking.
+     * @property targetElement
      */
     public get targetElement(): Element {
         return this._targetElement;
     }
 
     /**
-     * @property enabled - Gets or sets the enabled state of the @type {ScrollListener} instance.
+     * Gets or sets the enabled state of the ScrollListener instance.
+     * @property enabled
      */
     public get enabled(): boolean {
         return this._throttle.enabled;
@@ -200,16 +244,27 @@ export class ScrollListener {
         this._throttle.enabled = value;
     }
 
+    /**
+     * Returns the current number of throttled upstream events.
+     * ScrollListener does not guarantee to forward all throttled events to the downstream handler, however it will always 
+     * forward the most recent event and guarantees to forward the last event in each sequence.
+     * @property backlog
+     */
     public get backlog(): number {
         return this._throttle.throttled;
     }
 
+    /**
+     * Returns true if any scroll-event source that the ScrollListener instance has subscribed to is currently scrolling, otherwise returns false.
+     * @property isScrolling.
+     */
     public get isScrolling(): boolean {
         return this._throttle.isThrottling;
     }
 
     /**
-     * @method destroy - Detaches all event listeners and releases all resources
+     * Detaches all event listeners and releases all resources.
+     * @method destroy
      */
     public destroy() {
         if (this._baseEventSrc == null) return;
@@ -230,13 +285,16 @@ export class ScrollListener {
     }
 
     /**
-     * @function isScrollableContainer - Returns true if the element is an Element that exposes a getBoundingClientRect method and an onscroll property, otherwise false.
-     * @param element -  The element to test.
+     * Returns true if the element exposes a getBoundingClientRect method an onscroll property, and addEventListener and removeEventListener methods,
+     * otherwise false.
+     * @function isScrollableContainer
+     * @param element The element to test.
      */
     public static isScrollableContainer(element: any): boolean {
-        return element != null && element.getBoundingClientRect != undefined && element.onscroll != undefined;
+        return element != null && element.getBoundingClientRect != undefined && element.onscroll != undefined && element.addEventListener != undefined && element.removeEventListener != undefined;
     }
 
+    /** @internal */
     private onDownstreamEvent(sender: EventThrottle, e: UIEvent, source: ScrollEventSource) {
         // _topEventSource will be null in the event that destroy() was invoked prior to timeout.
         if (this._baseEventSrc == null)
@@ -245,7 +303,8 @@ export class ScrollListener {
         this._fn(this, this.getEventArgs(e, source));
     }
 
-    private getEventArgs(event: UIEvent, source: ScrollEventSource): ScrollListenerCallbackArgs {
+    /** @internal */
+    private getEventArgs(event: UIEvent, source: ScrollEventSource): ScrollListenerEventArgs {
         let that = this;
         let bRect: ClientRect = this.targetElement.getBoundingClientRect();
         let rel: ClientRect = null;
@@ -294,9 +353,9 @@ export class ScrollListener {
             get intersectsScope(): boolean {
                 if (intsScope == null) {
                     if (that._baseEventSrc.parent == null)
-                        intsScope = intsSrc;                        
+                        intsScope = intsSrc;
                     else {
-                        intsScope = EnclosedTypeFactory.deriveIntersectionResult(bRect, that.getScopeIntRect());
+                        intsScope = EnclosedTypeFactory.deriveIntersectionResult(bRect, that.getScopedIntersectionalRectangle());
                     }
                 }
                 return intsScope.intersects;
@@ -306,7 +365,7 @@ export class ScrollListener {
                     if (that._baseEventSrc.parent == null)
                         intsScope = intsScope;
                     else {
-                        intsScope = EnclosedTypeFactory.deriveIntersectionResult(bRect, that.getScopeIntRect());
+                        intsScope = EnclosedTypeFactory.deriveIntersectionResult(bRect, that.getScopedIntersectionalRectangle());
                     }
                 }
                 return intsScope.contains;
@@ -320,7 +379,8 @@ export class ScrollListener {
         }
     }
 
-    private getScopeIntRect() {
+    /** @internal */
+    private getScopedIntersectionalRectangle() {
         let r = this.targetElement.getBoundingClientRect();
         let s = this._baseEventSrc;
         while (s != null) {
@@ -331,6 +391,7 @@ export class ScrollListener {
         return r;
     }
 
+    /** @internal */
     private getIntersectionalRectangle(child: ClientRect, container: ScrollEventSource): ClientRect {
         let cr = container.getClientRect();
 
@@ -345,6 +406,7 @@ export class ScrollListener {
         );
     }
 
+    /** @internal */
     private getRelativeRectangle(rect: ClientRect, crect: ClientRect): ClientRect {
         let t = rect.top - crect.top;
         let l = rect.left - crect.left;
@@ -360,9 +422,9 @@ export class ScrollListener {
 type ScrollEventHandler = (sender: ScrollEventSource, e: UIEvent) => void;
 interface BorderOffsets {
     readonly left: number;
-    readonly right: number;
+    //readonly right: number;
     readonly top: number;
-    readonly bottom: number;
+    //readonly bottom: number;
 }
 
 abstract class ScrollEventSource {
@@ -411,20 +473,19 @@ abstract class ScrollEventSource {
         this.source.removeEventListener("scroll", this._localHandlerRef);
     }
 
-    /** @internal */
     protected getOffsetsImp(el: Element): BorderOffsets {
         let style = window.getComputedStyle(el);
 
         const l = parseInt(style.borderLeft);
-        const r = parseInt(style.borderRight);
+        //const r = parseInt(style.borderRight);
         const t = parseInt(style.borderTop);
-        const b = parseInt(style.borderBottom);
+        //const b = parseInt(style.borderBottom);
 
         let res = {
             left: isNaN(l) ? 0 : l,
-            right: isNaN(r) ? 0 : r,
+            //right: isNaN(r) ? 0 : r,
             top: isNaN(t) ? 0 : t,
-            bottom: isNaN(b) ? 0 : b
+            //bottom: isNaN(b) ? 0 : b
         }
 
         return res;
@@ -536,7 +597,7 @@ class WindowEventSource extends ScrollEventSource {
     }
 
     getBorderOffsets(): BorderOffsets {
-        return { left: 0, right: 0, top: 0, bottom: 0 };
+        return { left: 0, top: 0 };
     }
 }
 

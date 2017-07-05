@@ -1,4 +1,4 @@
-import { ScrollEventTargetCollection, ScrollListener, ScrollListenerCallbackArgs, ScrollListenerOptions } from './package-src/scroll-listener';
+import { ScrollEventTargetCollection, ScrollListener, ScrollListenerEventArgs, ScrollListenerOptions } from './package-src/scroll-listener';
 
 export class ScrollListenerTest {
     private viewPort: HTMLElement;
@@ -103,7 +103,7 @@ export class ScrollListenerTest {
         document.getElementById("t-trace").innerHTML = (++this.sequence).toString();
     }
 
-    onScroll(sender: ScrollListener, args: ScrollListenerCallbackArgs) {
+    onScroll(sender: ScrollListener, args: ScrollListenerEventArgs) {
         console.log("scrolling");
         this.updateInstrumentation(args);
         if (args.source !== this.viewPort) return;
@@ -131,7 +131,7 @@ export class ScrollListenerTest {
         this.positionViewportOverlay();
     }
 
-    private positionViewportOverlay(args?: ScrollListenerCallbackArgs) {
+    private positionViewportOverlay(args?: ScrollListenerEventArgs) {
         let r = this.map.getBoundingClientRect();
         let o = this.getOffsets(this.viewPort);
 
@@ -152,7 +152,7 @@ export class ScrollListenerTest {
         }
     }
 
-    updateInstrumentation(args: ScrollListenerCallbackArgs) {
+    updateInstrumentation(args: ScrollListenerEventArgs) {
         let rel = args.getRelativeRectangle();
 
         document.getElementById("t-top").innerHTML = Math.round(rel.top) + "px";
