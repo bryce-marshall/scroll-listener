@@ -156,13 +156,21 @@
                         <td><span id="t-right"></span></td>
                     </tr>
                     <tr>
-                        <td>inView:</td>
-                        <td><span id="t-inview"></span></td>
+                        <td>intersectsSource:</td>
+                        <td><span id="t-ints-src"></span></td>
                     </tr>
                     <tr>
-                        <td>inViewport:</td>
-                        <td><span id="t-inviewport"></span></td>
+                        <td>withinSource:</td>
+                        <td><span id="t-within-src"></span></td>
                     </tr>
+                    <tr>
+                        <td>intersectsScope:</td>
+                        <td><span id="t-ints-scope"></span></td>
+                    </tr>
+                    <tr>
+                        <td>withinScope:</td>
+                        <td><span id="t-within-scope"></span></td>
+                    </tr>                    
                     <tr>
                         <td>scrolling:</td>
                         <td><span id="t-scrolling"></span></td>
@@ -219,8 +227,8 @@
     <div class="control-region">
         <input id="cb-trace" type="checkbox">Invoke Trace Function<sup>4</sup>
     </div>
-    <p><sup>1</sup>Unconstrained scope will result in the ScrollListener attaching to the scroll events of both the inner and
-        outer scrollable regions</p>
+    <p><sup>1</sup>In this example, unconstrained scope will result in the ScrollListener attaching to the scroll events of all containers that are 
+    parents of the target element. In practise, scope can be configured programatically.</p>
     <p><sup>2</sup>The throttle duration is minimum delay that the ScrollListener enforces between raising sequential scroll
         events (the default duration is 150 milliseconds). Throttling scroll events can help make a busy UI feel more responsive
         by avoiding unnecessarily processing every DOM scroll event. ScrollListener will ALWAYS raise an event in response

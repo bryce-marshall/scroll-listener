@@ -17,7 +17,7 @@
   "author": "Bryce Marshall",
   "license": "MIT",
   "dependencies": {
-    "@brycemarshall/event-throttle": "^1.0.0"
+    "@brycemarshall/event-throttle": "^1.0.2"
   },
   "devDependencies": {
     "browserify": "latest"
