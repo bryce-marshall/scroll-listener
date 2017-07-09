@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <script>
+        var _mode = "tracking-test";
+    </script>
+    <meta charset="UTF-8">
+    <title>ScrollListener Tracking Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4e8ef7">
+    <script src="bundle.js" type="application/javascript"></script>
+
+    <style>
+        * {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        table {
+            table-layout: auto;
+            width: auto !important;
+        }
+
+        body {
+            font-size: 12px;
+        }
+
+        div[id="scroll-container"] {
+            border: solid red 1px;
+            /*width: fit-content;*/
+            overflow: auto;
+        }
+
+        .tracker1 {
+            position: absolute;
+            padding: 8px;
+            border: solid red 2px;
+            text-align: center;
+        }
+
+        .tracker2 {
+            position: absolute;
+            padding: 8px;
+            border: solid blue 2px;
+            text-align: center;
+        }
+
+        .instruments {
+            background-color: white;
+            position: absolute;
+            padding: 8px;
+            border: dashed #afafaf 2px;
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>ScrollListener Tracking Test</h1>
+    <div id="tracker1" class="tracker1">
+        I am tracking DIV 1
+    </div>
+    <div id="tracker2" class="tracker2">
+        I am tracking DIV 2
+    </div>
+    <div id="instruments" class="instruments">
+        <table>
+            <tr>
+                <td>intersectsSource</td>
+                <td><span id="ints-src"></span></td>
+            </tr>
+            <tr>
+                <td>withinSource</td>
+                <td><span id="within-src"></td></tr>            
+            <tr><td>intersectsScope</td><td><span id="ints-scp"></span></td>
+            </tr>
+            <tr>
+                <td>withinScope</td>
+                <td><span id="within-scp"></td></tr>
+            <tr><td>scrolling</td><td><span id="scrl"></td></tr>
+        </table>
+    </div>
+    <!--<div id="scroll-container" autocomplete-container style="overflow:auto;border: 1px solid #afafaf;padding:8px;" [style.height.px]="scrollHeight">-->
+    <div id="scroll-container">        
+        <div style="height:1000px;"></div>
+        <table>
+            <tr>
+                <td>
+                    <div style="width:600px;"></div>
+                </td>
+                <td>
+                    <label fixed>Colour</label>
+                    <input id="input-element" type="text" />
+                </td>
+                <td>
+                    <div style="width:600px;"></div>
+                </td>
+            </tr>
+        </table>
+        <!--<input id="input-element" type="text" />-->
+        <div style="height:1000px;"></div>
+    </div>
+</body>
+
+</html>

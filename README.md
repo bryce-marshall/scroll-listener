@@ -21,7 +21,26 @@ export interface IScrollEventTarget extends EventTarget {
     onscroll(this: Document | Element | Window, event: UIEvent): any;
 }
 /**
- * A collection of objects implementing IScrollEventTarget which can be used to create a new ScrollListener instance.
+ * Describes the type of an IScrollEventTarget instance.
+ * @enum ScrollEventTargetType
+ */
+export declare enum ScrollEventTargetType {
+    Element = 0,
+    Document = 1,
+    Window = 2,
+}
+/**
+ * A function that can be passed to the static ScrollEventTargetCollection.auto method to determine which scroll event sources will be
+ * included/excluded from the ScrollListener scope.
+ * @function ScrollEventScopeLimiter
+ */
+export declare type ScrollEventScopeLimiter = (targetType: ScrollEventTargetType, target: Element | Document | Window) => boolean;
+/**
+ * A collection of objects implementing IScrollEventTarget which can be used to create a new ScrollListener instance for tracking a specific
+ * target element.
+ * Valid IScrollEventTarget instances include any DOM Element (including the global document variable), and a reference to a Window object.
+ * Note that although each element must be a parent node (or logical parent node in the case of Window) of the target element
+ * to be tracked, it does not matter in what order they are added to the collection.
  * @class ScrollEventTargetCollection
  */
 export declare class ScrollEventTargetCollection {
@@ -38,7 +57,14 @@ export declare class ScrollEventTargetCollection {
      * @param scopeLimiter Optional. When specified, limits the set of IScrollEventTarget containers that will be resolved by this method
      * to all containers of parentElement up to and including scopeLimiter.
      */
-    static auto(target: HTMLElement, scopeLimiter?: HTMLElement): ScrollEventTargetCollection;
+    static auto(target: HTMLElement, scopeLimiter?: Element | ScrollEventScopeLimiter): ScrollEventTargetCollection;
+    /**
+     * Returns the default ScrollEventScopeLimiter function used by the static auto method when no other limiter is specified.
+     * The function will include all parent elements of the target HTMLElement, and finally the window object.
+     * It will exclude the document object.
+     * @property defaultScopeLimiter
+     */
+    static readonly defaultScopeLimiter: ScrollEventScopeLimiter;
     /**
      * Returns the number of IScrollEventTarget instances within the collection.
      * @property count
@@ -58,7 +84,8 @@ export declare class ScrollEventTargetCollection {
      */
     add(eventTarget: string | IScrollEventTarget): void;
     /**
-     * Returns an array of the IScrollEventTarget instances in the collection.
+     * Returns an array of the IScrollEventTarget instances in the collection, sorted by their inverse hierarchical position in the document hierarchy
+     * (child elements first preceeding their parent elements, and finally the window object if it is present).
      * @function toArray
      */
     toArray(): IScrollEventTarget[];
@@ -80,7 +107,7 @@ export declare class ScrollEventTargetCollection {
  */
 export interface ScrollListenerEventArgs {
     readonly source: Document | Element | Window;
-    readonly sourceType: string;
+    readonly sourceType: ScrollEventTargetType;
     readonly sourceEvent: UIEvent;
     getRelativeRectangle(other?: Element): ClientRect;
     readonly intersectionalRectangle: ClientRect;
@@ -97,7 +124,7 @@ export interface ScrollListenerEventArgs {
  * @param sender - the ScrollListener instance that invoked the callback.
  * @param args - The callback arguments as an instance of the ScrollListenerCallbackArgs.
  */
-export declare type ScrollListenerCallbackFunction = (sender: ScrollListener, args: ScrollListenerCallbackArgs) => void;
+export declare type ScrollListenerCallbackFunction = (sender: ScrollListener, args: ScrollListenerEventArgs) => void;
 /**
  * The function optionally invoked by ScrollListener instances whenever an upstream scroll event occurs.
  * @function ScrollListenerTraceCallbackFunction
@@ -120,10 +147,16 @@ export interface ScrollListenerOptions {
 }
 /**
  * A helper class that that invokes a callback function when a specified target element is scrolled.
- * ScrollListener works by subscribing to the scroll event of one or more of the target element's parent containers.
  * ScrollListener enables easy throttling of the upstream scroll events that it subscribes to (to prevent the UI from being overloaded)
- * and also provides client code with useful information about the target element, including its visibility and position relative to
- * its container elements.
+ * and also provides client code with useful information about the target element, including its visibility and position relative to the
+ * parent elements that contain it.
+ * ScrollListener works by subscribing to the scroll event of each event source passed to its constructor via the "eventSources" parameter (as a ScrollEventTargetCollection instance).
+ * It is important to understand that the set of event sources defines the scope of the ScrollListener instance. This has two implications:
+ * (1) If the target element is scrolled by any container not included in the ScrollEventTargetCollection instance, then ScrollListener will not handle the event; and
+ * (2) The target element's visibility (reported by the "intersectsScope" and "withinScope" properties of the ScrollListenerEventArgs class) is relative to the topmost element of the defined scope.
+ * This means that ScrollListener will report that the target is visible if it's bounding rectangle is fully contained within the client rectangle of the
+ * topmost container in the scope, irrespecitive of whether or not the target it is visible within parent containers (such as the Window object)
+ * that may not have been not included in the scope.
  * @class ScrollListener
  */
 export declare class ScrollListener {
@@ -199,7 +232,7 @@ export declare class ScrollListener {
 # Usage - General
 
 ScrollListener instances are created by invoking the ScrollListener constructor and passing (at a minimum) the target element to be tracked, a
-ScrollEventTargetCollection containing a set of scroll event sources, and a callback function to be invoked in response to scroll events.
+ScrollEventTargetCollection containing a set of one or more scroll event sources, and a callback function to be invoked in response to scroll events.
 Further configuration is possible by passing an object implementing ScrollListenerOptions.
 
 ScrollEventTargetCollection instances can be populated with specific scroll containers, however invoking its static 'auto' function will
@@ -214,6 +247,17 @@ ScrollListener will ALWAYS raise an event in response to the final scroll positi
 In addition to event throttling and the automatic resolution of parent scroll containers, ScrollListener event arguments expose useful information
 such as the position of the target element relative to its scroll containers, whether or not the target element is currently visible within the
 scrolling viewport, and optional client state.
+
+# IMPORTANT NOTE
+
+HTML Table objects will by default overflow the bounding rectangle of any parent DIV (and other) elements, and in such cases ScrollListener may 
+innacutately report whether or not a target element intersects or is contained within the scope or the scroll source element.
+The preferred solution to this problem is to avoid the use of HTML tables (which do not play nicely with CSS), however parent elements may be
+configured to expand to accommodate tables by using one of the following methods:
+
+    style.width = "fit-content"; style.height = "fit-content"; / style = "width: fit-content;height: fit-content;"
+OR  style.overflow = "auto"; OR "overflow: auto;"
+OR  style.overflow = "scroll"; OR "overflow: scroll;"
 
 # Usage - Unconstrained Scope
 

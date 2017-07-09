@@ -1,6 +1,6 @@
 import { ScrollEventTargetCollection, ScrollListener, ScrollListenerEventArgs, ScrollListenerOptions } from './package-src/scroll-listener';
 
-export class ScrollListenerTest {
+export class ScrollListenerDemo {
     private viewPort: HTMLElement;
     private target: HTMLElement;
     private map: HTMLElement;
@@ -104,7 +104,6 @@ export class ScrollListenerTest {
     }
 
     onScroll(sender: ScrollListener, args: ScrollListenerEventArgs) {
-        console.log("scrolling");
         this.updateInstrumentation(args);
         if (args.source !== this.viewPort) return;
 

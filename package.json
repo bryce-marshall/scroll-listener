@@ -1,6 +1,6 @@
 {
   "name": "@brycemarshall/scroll-listener",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "A helper class that listens for scroll events affecting a specific element.",
   "repository": {
     "type": "git",

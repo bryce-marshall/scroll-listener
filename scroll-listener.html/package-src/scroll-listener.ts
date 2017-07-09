@@ -1,8 +1,5 @@
 import { EventThrottle, EventThrottleOptions } from '@brycemarshall/event-throttle';
 
-// TODO: Border offsets for ltr language browsers
-// TODO: Do right and bottom border offsets need to be applied under circumstances other than rtl languages?
-
 /**
  * Represents a scroll event source that ScrollListener can subscribe to.
  * @interface IScrollEventTarget
@@ -12,7 +9,28 @@ export interface IScrollEventTarget extends EventTarget {
 }
 
 /**
- * A collection of objects implementing IScrollEventTarget which can be used to create a new ScrollListener instance.
+ * Describes the type of an IScrollEventTarget instance.
+ * @enum ScrollEventTargetType
+ */
+export enum ScrollEventTargetType {
+    Element,
+    Document,
+    Window
+}
+
+/**
+ * A function that can be passed to the static ScrollEventTargetCollection.auto method to determine which scroll event sources will be 
+ * included/excluded from the ScrollListener scope.
+ * @function ScrollEventScopeLimiter 
+ */
+export type ScrollEventScopeLimiter = (targetType: ScrollEventTargetType, target: Element | Document | Window) => boolean;
+
+/**
+ * A collection of objects implementing IScrollEventTarget which can be used to create a new ScrollListener instance for tracking a specific
+ * target element.
+ * Valid IScrollEventTarget instances include any DOM Element (including the global document variable), and a reference to a Window object.
+ * Note that although each element must be a parent node (or logical parent node in the case of Window) of the target element
+ * to be tracked, it does not matter in what order they are added to the collection.
  * @class ScrollEventTargetCollection
  */
 export class ScrollEventTargetCollection {
@@ -37,20 +55,56 @@ export class ScrollEventTargetCollection {
      * @param scopeLimiter Optional. When specified, limits the set of IScrollEventTarget containers that will be resolved by this method
      * to all containers of parentElement up to and including scopeLimiter.
      */
-    static auto(target: HTMLElement, scopeLimiter?: HTMLElement): ScrollEventTargetCollection {
+    static auto(target: HTMLElement, scopeLimiter?: Element | ScrollEventScopeLimiter): ScrollEventTargetCollection {
         if (target == null) throw new Error('The parameter "target" cannot be null.')
+
         let result = new ScrollEventTargetCollection();
-
-        target = target !== scopeLimiter ? target.parentElement : null;
-        while (target != null) {
-            result.add(target);
-            target = target !== scopeLimiter ? target.parentElement : null;
-        }
-
+        let fn: ScrollEventScopeLimiter = null;
         if (scopeLimiter == null)
-            result.add(window);
+            fn = ScrollEventTargetCollection.defaultScopeLimiter;
+        else if (typeof (scopeLimiter) === "function")
+            fn = scopeLimiter;
 
+        if (fn != null) {
+            target = target.parentElement;
+            while (target != null) {
+                if (fn(ScrollEventTargetType.Element, target))
+                    result.add(target);
+                target = target.parentElement;
+            }
+
+            if (fn(ScrollEventTargetType.Document, document))
+                result.add(document);
+            if (fn(ScrollEventTargetType.Window, window))
+                result.add(window);
+        }
+        else {
+            target = target !== scopeLimiter ? target.parentElement : null;
+            while (target != null) {
+                result.add(target);
+                target = target !== scopeLimiter ? target.parentElement : null;
+            }
+        }
         return result;
+    }
+
+    /**
+     * Returns the default ScrollEventScopeLimiter function used by the static auto method when no other limiter is specified.
+     * The function will include all parent elements of the target HTMLElement, and finally the window object.
+     * It will exclude the document object.
+     * @property defaultScopeLimiter
+     */
+    static get defaultScopeLimiter(): ScrollEventScopeLimiter {
+        return (targetType: ScrollEventTargetType, target: Element | Document | Window): boolean => {
+            if (targetType == ScrollEventTargetType.Document)
+                return false;
+
+            if (targetType == ScrollEventTargetType.Window)
+                return true;
+
+            let e = <Element>target;
+            return e.tagName != "BODY" && e.tagName != "HTML";
+        };
     }
 
     /**
@@ -91,13 +145,27 @@ export class ScrollEventTargetCollection {
     }
 
     /**
-     * Returns an array of the IScrollEventTarget instances in the collection.
+     * Returns an array of the IScrollEventTarget instances in the collection, sorted by their inverse hierarchical position in the document hierarchy 
+     * (child elements first preceeding their parent elements, and finally the window object if it is present).
      * @function toArray
      */
     toArray(): IScrollEventTarget[] {
         let result = new Array<IScrollEventTarget>(this._members.length);
         for (let i = 0; i < this._members.length; i++)
             result[i] = this._members[i];
+
+        if (!Node.prototype.compareDocumentPosition)
+            return result;
+
+        result.sort((x: any, y: any) => {
+            if (x.compareDocumentPosition)
+                if (y.compareDocumentPosition)
+                    return x.compareDocumentPosition(y) & 2 ? -1 : 1;
+                else
+                    return -1;
+            
+            return (y.compareDocumentPosition) ? 1 : -1;
+        });
 
         return result;
     }
@@ -120,7 +188,7 @@ export class ScrollEventTargetCollection {
  */
 export interface ScrollListenerEventArgs {
     readonly source: Document | Element | Window;
-    readonly sourceType: string;
+    readonly sourceType: ScrollEventTargetType;
     readonly sourceEvent: UIEvent;
     getRelativeRectangle(other?: Element): ClientRect;
     readonly intersectionalRectangle: ClientRect;
@@ -164,10 +232,16 @@ export interface ScrollListenerOptions {
 
 /**
  * A helper class that that invokes a callback function when a specified target element is scrolled.
- * ScrollListener works by subscribing to the scroll event of one or more of the target element's parent containers.
  * ScrollListener enables easy throttling of the upstream scroll events that it subscribes to (to prevent the UI from being overloaded)
- * and also provides client code with useful information about the target element, including its visibility and position relative to 
- * its container elements.
+ * and also provides client code with useful information about the target element, including its visibility and position relative to the
+ * parent elements that contain it.
+ * ScrollListener works by subscribing to the scroll event of each event source passed to its constructor via the "eventSources" parameter (as a ScrollEventTargetCollection instance).
+ * It is important to understand that the set of event sources defines the scope of the ScrollListener instance. This has two implications:
+ * (1) If the target element is scrolled by any container not included in the ScrollEventTargetCollection instance, then ScrollListener will not handle the event; and
+ * (2) The target element's visibility (reported by the "intersectsScope" and "withinScope" properties of the ScrollListenerEventArgs class) is relative to the topmost element of the defined scope.
+ * This means that ScrollListener will report that the target is visible if it's bounding rectangle is fully contained within the client rectangle of the 
+ * topmost container in the scope, irrespecitive of whether or not the target it is visible within parent containers (such as the Window object) 
+ * that may not have been not included in the scope.
  * @class ScrollListener
  */
 export class ScrollListener {
@@ -214,12 +288,14 @@ export class ScrollListener {
         this._fn = callbackFunction;
         let handlerRef: ScrollEventHandler = (source, e) => { if (this._traceFn) this._traceFn(this, e); this._throttle.registerEvent(e, source); };
 
-        let s: ScrollEventSource = ScrollEventSource.createFrom(handlerRef, eventSources.get(0), null);
-        this._baseEventSrc = s;
-        s.bind();
+        let es = eventSources.toArray();
 
-        for (let idx = 1; idx < eventSources.count; idx++) {
-            s = ScrollEventSource.createFrom(handlerRef, eventSources.get(idx), s);
+        let s: ScrollEventSource = ScrollEventSource.createFrom(handlerRef, es[0], null);
+        s.bind();
+        this._baseEventSrc = s;
+
+        for (let idx = 1; idx < es.length; idx++) {
+            s = ScrollEventSource.createFrom(handlerRef, es[idx], s);
             s.bind();
         }
     }
@@ -318,7 +394,7 @@ export class ScrollListener {
             get source(): Document | Element | Window {
                 return source.source;
             },
-            get sourceType(): string {
+            get sourceType(): ScrollEventTargetType {
                 return source.sourceType;
             },
             get sourceEvent(): UIEvent {
@@ -363,7 +439,7 @@ export class ScrollListener {
             get withinScope(): boolean {
                 if (intsScope == null) {
                     if (that._baseEventSrc.parent == null)
-                        intsScope = intsScope;
+                        intsScope = intsSrc;
                     else {
                         intsScope = EnclosedTypeFactory.deriveIntersectionResult(bRect, that.getScopedIntersectionalRectangle());
                     }
@@ -387,14 +463,12 @@ export class ScrollListener {
             r = this.getIntersectionalRectangle(r, s);
             s = s.parent;
         }
-
         return r;
     }
 
     /** @internal */
     private getIntersectionalRectangle(child: ClientRect, container: ScrollEventSource): ClientRect {
         let cr = container.getClientRect();
-
         if (child.bottom <= cr.top || child.top >= cr.bottom || child.right <= cr.left || child.left >= cr.right)
             return EnclosedTypeFactory.createRect(0, 0, 0, 0);
 
@@ -441,17 +515,19 @@ abstract class ScrollEventSource {
         this._localHandlerRef = (e) => { this._eventHandler(this, e); };
     }
 
-    abstract get sourceType(): string;
+    abstract get sourceType(): ScrollEventTargetType;
     abstract get source(): Document | Element | Window;
     abstract getBoundingClientRect(): ClientRect;
     abstract get clientWidth(): number;
     abstract get clientHeight(): number;
+    abstract get scrollTop(): number;
+    abstract get scrollLeft(): number;
+
     abstract getBorderOffsets(): BorderOffsets;
 
     getClientRect(): ClientRect {
         let r = this.getBoundingClientRect();
         let b = this.getBorderOffsets();
-        let that = this;
 
         return EnclosedTypeFactory.createRect(
             r.top + b.top,
@@ -507,7 +583,6 @@ abstract class ScrollEventSource {
         else if (<any>source === window)
             return new WindowEventSource(eventHandler, <Window><any>source, child);
 
-        //console.log("Node type of rogue source = " + )
         throw new Error("Only objects of type Document, Element, and Window are supported as scroll event sources.");
     }
 }
@@ -520,8 +595,8 @@ class ElementEventSource extends ScrollEventSource {
         this.source = source;
     }
 
-    get sourceType(): string {
-        return "element";
+    get sourceType(): ScrollEventTargetType {
+        return ScrollEventTargetType.Element;
     }
 
     getBoundingClientRect(): ClientRect {
@@ -534,6 +609,14 @@ class ElementEventSource extends ScrollEventSource {
 
     get clientHeight(): number {
         return this.source.clientHeight;
+    }
+
+    get scrollTop(): number {
+        return this.source.scrollTop;
+    }
+
+    get scrollLeft(): number {
+        return this.source.scrollLeft;
     }
 
     getBorderOffsets(): BorderOffsets {
@@ -551,8 +634,8 @@ class DocumentEventSource extends ScrollEventSource {
         this._el = source.documentElement;
     }
 
-    get sourceType(): string {
-        return "document";
+    get sourceType(): ScrollEventTargetType {
+        return ScrollEventTargetType.Document;;
     }
 
     getBoundingClientRect(): ClientRect {
@@ -565,6 +648,14 @@ class DocumentEventSource extends ScrollEventSource {
 
     get clientHeight(): number {
         return this._el.clientHeight;
+    }
+
+    get scrollTop(): number {
+        return this._el.scrollTop;
+    }
+
+    get scrollLeft(): number {
+        return this._el.scrollLeft;
     }
 
     getBorderOffsets(): BorderOffsets {
@@ -580,8 +671,8 @@ class WindowEventSource extends ScrollEventSource {
         this.source = source;
     }
 
-    get sourceType(): string {
-        return "window";
+    get sourceType(): ScrollEventTargetType {
+        return ScrollEventTargetType.Window;
     }
 
     getBoundingClientRect(): ClientRect {
@@ -594,6 +685,14 @@ class WindowEventSource extends ScrollEventSource {
 
     get clientHeight(): number {
         return this.source.innerHeight;
+    }
+
+    get scrollTop(): number {
+        return this.source.scrollY;
+    }
+
+    get scrollLeft(): number {
+        return this.source.scrollX;
     }
 
     getBorderOffsets(): BorderOffsets {

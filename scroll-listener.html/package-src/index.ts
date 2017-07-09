@@ -1,4 +1,6 @@
 export { IScrollEventTarget } from './scroll-listener';
+export { ScrollEventTargetType } from './scroll-listener';
+export { ScrollEventScopeLimiter } from './scroll-listener';
 export { ScrollEventTargetCollection } from './scroll-listener';
 export { ScrollListenerEventArgs } from './scroll-listener';
 export { ScrollListenerCallbackFunction } from './scroll-listener';

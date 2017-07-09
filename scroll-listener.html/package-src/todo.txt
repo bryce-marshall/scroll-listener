@@ -1,0 +1,13 @@
+* Border offsets for ltr language browsers
+* Do right and bottom border offsets need to be applied under circumstances other than rtl languages?
+* Proxy Table Rectangles as Min Size
+  ----------------------------------
+Consider proxying table rectangle coordinates as minimum sized rectangle for containers above table
+(may implement a proxy wrapper that can be passed up to parent scopes, and indeed wrap other proxies). This is necessary because tables
+tend to overflow DIVs and other containers such as BODY and HTML. If this is done, then the BODY and HTML elements could be re-included
+in the ScrollEventTargetCollection.auto() method - but do they actually fire a scroll event? 
+NOTE: Such behaviour MUST NOT break parent containers that are themselves scrollable.
+NOTE that this behaviour should be optional (perhaps configurable using CSS).
+NOTE: Applying style.width = "fit-content" to containing divs fixes the table overflow problem as does style.overflow = "auto", 
+however the problem will persist if scope is not limited to containers with these style settings as they themselves will overflow
+parent containers (at least, they appear to do so with BODY and HTML).
