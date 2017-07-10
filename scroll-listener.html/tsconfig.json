@@ -26,6 +26,8 @@
         ".vscode",
         "node_modules",
         "test-build",
-        "test*"
+        "test*",
+        "helpers.ts",
+        "tracking-test.ts"
     ]
 }

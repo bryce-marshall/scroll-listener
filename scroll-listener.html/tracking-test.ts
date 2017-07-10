@@ -32,6 +32,7 @@ export class TrackingTest {
         //let sources: ScrollEventTargetCollection = new ScrollEventTargetCollection(this._target.parentElement, window);
         let options: ScrollListenerOptions = { throttleDuration: 500 };
         this._listener = new ScrollListener(this._target, sources, (sender, e) => { this.onScroll(sender, e) }, options);
+        this._listener.dumpScope(true);
     }
 
     onScroll(sender: ScrollListener, args: ScrollListenerEventArgs) {
@@ -58,6 +59,7 @@ export class TrackingTest {
         // this._tracker2.style.top = (r2.top) + "px";
         // this._tracker2.style.left = (r2.left) + "px";
         // console.log("r.top = " + r.top + "; r2.top = " + r2.top);
+        // console.log(r2);
 
         this._tracker2.style.top = (window.scrollY + r2.top - 50) + "px";
         this._tracker2.style.left = (window.scrollX + r2.left) + "px";
@@ -66,6 +68,7 @@ export class TrackingTest {
         this._instruments.style.left = (window.scrollX + 10) + "px";
 
         this.updateInstrumentation(args);
+        args.dumpScope(true);
     }
 
     private updateInstrumentation(args: ScrollListenerEventArgs){

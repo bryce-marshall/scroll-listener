@@ -12,7 +12,8 @@ window.onload = function () {
         window.onresize = function () {
             _test.onResize();
         }
-    } else if (_mode == "tracking-test") {
+    } 
+    else if (_mode == "tracking-test") {
         _test = new TrackingTest();
         _test.init();
     }

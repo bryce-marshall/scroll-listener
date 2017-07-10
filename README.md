@@ -21,10 +21,9 @@ export interface IScrollEventTarget extends EventTarget {
     onscroll(this: Document | Element | Window, event: UIEvent): any;
 }
 /**
- * Describes the type of an IScrollEventTarget instance.
- * @enum ScrollEventTargetType
+ * Describes the type of an encapsulated DOM object.
  */
-export declare enum ScrollEventTargetType {
+export declare enum DOMType {
     Element = 0,
     Document = 1,
     Window = 2,
@@ -32,9 +31,10 @@ export declare enum ScrollEventTargetType {
 /**
  * A function that can be passed to the static ScrollEventTargetCollection.auto method to determine which scroll event sources will be
  * included/excluded from the ScrollListener scope.
- * @function ScrollEventScopeLimiter
+ * @param domType The DOMType of the object referenced by the eventSource parameter.
+ * @param eventSource The event source to include or exclude from the scope.
  */
-export declare type ScrollEventScopeLimiter = (targetType: ScrollEventTargetType, target: Element | Document | Window) => boolean;
+export declare type ScrollEventScopeLimiter = (domType: DOMType, eventSource: Element | Document | Window) => boolean;
 /**
  * A collection of objects implementing IScrollEventTarget which can be used to create a new ScrollListener instance for tracking a specific
  * target element.
@@ -52,7 +52,6 @@ export declare class ScrollEventTargetCollection {
     constructor(...items: IScrollEventTarget[]);
     /**
      * Creates and automatically populates a ScrollEventTargetCollection with IScrollEventTarget parents of target.
-     * @method auto
      * @param target The HTMLElement that will be tracked by a ScrollListener instance.
      * @param scopeLimiter Optional. When specified, limits the set of IScrollEventTarget containers that will be resolved by this method
      * to all containers of parentElement up to and including scopeLimiter.
@@ -62,87 +61,140 @@ export declare class ScrollEventTargetCollection {
      * Returns the default ScrollEventScopeLimiter function used by the static auto method when no other limiter is specified.
      * The function will include all parent elements of the target HTMLElement, and finally the window object.
      * It will exclude the document object.
-     * @property defaultScopeLimiter
      */
     static readonly defaultScopeLimiter: ScrollEventScopeLimiter;
     /**
      * Returns the number of IScrollEventTarget instances within the collection.
-     * @property count
      */
     readonly count: number;
     /**
      * Returns the IScrollEventTarget at the specified index.
-     * @function get
      * @param index
      * @throws If index is null, less than 0, or greater than this.count.
      */
     get(index: number): IScrollEventTarget;
     /**
      * Adds an IScrollEventTarget instance to the collection.
-     * @method add
      * @param eventTarget The instance to add.
      */
     add(eventTarget: string | IScrollEventTarget): void;
     /**
      * Returns an array of the IScrollEventTarget instances in the collection, sorted by their inverse hierarchical position in the document hierarchy
      * (child elements first preceeding their parent elements, and finally the window object if it is present).
-     * @function toArray
      */
     toArray(): IScrollEventTarget[];
 }
 /**
+ * Contains information about the intersection of a target element with a container element.
+ * @interface IntersectionData
+ */
+export interface IntersectionData {
+    /**
+     * The type of the containing scroll event source.
+     */
+    readonly sourceType: DOMType;
+    /**
+     * The underlying DOM scroll event source.
+     */
+    readonly source: Document | Element | Window;
+    /**
+     * A rectangle representing the intersection of the target element with the underlying scroll event source.
+     */
+    readonly intRect: ClientRect;
+    /**
+     * Returns true if the instance describes an intersection, otherwise returns false.
+     */
+    readonly intersects: boolean;
+}
+/**
  * Event arguments passed to the ScrollListener callback function following a scroll event.
  * @interface ScrollListenerEventArgs
- * @property {Element} source The container that was scrolled to trigger the event.
- * @property {string} sourceType A string describing the type of event source (element, document, or window).
- * @property {UIEvent} sourceEvent The original upstream UIEvent.
- * @function getRelativeRectangle Returns a ClientRect instance describing the position of target relative to a specified element, or if no element is specified then relative to the container that fired the event.
- * @property {ClientRect} intersectionalRectangle A ClientRect instance describing the portion of the target element that is visible within the container that fired the event.
- * @property {boolean} intersectsSource True if any portion of the target element is visible within the container that fired the event, otherwise false.
- * @property {boolean} withinSource - True if the entire target element is visible within the container that fired the event, otherwise false.
- * @property {boolean} intersectsScope True if any portion of the target element is visible within the topmost scroll container that the ScrollListener instance is monitoring, otherwise false.
- * @property {boolean} withinScope - True if the entire target element is visible within the topmost scroll container that the ScrollListener instance is monitoring, otherwise false.
- * @property {boolean} scrolling - True if the target element is still scrolling at time the event is processed, otherwise false.
- * @property {any} state - Client state referenced by the ScrollListener instance.
  */
 export interface ScrollListenerEventArgs {
+    /**
+     * The container that was scrolled to trigger the event.
+     */
     readonly source: Document | Element | Window;
-    readonly sourceType: ScrollEventTargetType;
+    /**
+     * A string describing the type of event source (element, document, or window).
+     */
+    readonly sourceType: DOMType;
+    /**
+     * The original upstream UIEvent.
+     */
     readonly sourceEvent: UIEvent;
+    /**
+     * Returns a ClientRect instance describing the position of target relative to a specified element, or if no element is specified then relative to the container that fired the event.
+     */
     getRelativeRectangle(other?: Element): ClientRect;
+    /**
+     * A ClientRect instance describing the portion of the target element that is visible within the container that fired the event.
+     */
     readonly intersectionalRectangle: ClientRect;
+    /**
+     * Returns the array of rectangles that were tested following the scroll event to determine the extent to which the target element intersects with its containers that are included in the ScrollListener scope. The first element in the array represents the target DOM element, and the last element in the array will represent the DOM element of either the first container that the target element did not intersect, or the topmost container in the scope hierarchy if the target element intersected all scope elements.
+     */
+    getScopeRectangles(): ClientRect[];
+    /**
+     * Returns an array of IntersectionData objects that provide data about how the target element intersects with its parent containers that are defined by the ScrollListener scope.
+     */
+    getIntersectionData(): IntersectionData[];
+    /**
+     * True if any portion of the target element is visible within the container that fired the event, otherwise false.
+     */
     readonly intersectsSource: boolean;
+    /**
+     * True if the entire target element is visible within the container that fired the event, otherwise false.
+     */
     readonly withinSource: boolean;
+    /**
+     * True if any portion of the target element is visible within the topmost scroll container that the ScrollListener instance is monitoring, otherwise false.
+     */
     readonly intersectsScope: boolean;
+    /**
+     * True if the target element is still scrolling at time the event is processed, otherwise false.
+     */
     readonly withinScope: boolean;
+    /**
+     * True if the entire target element is visible within the topmost scroll container that the ScrollListener instance is monitoring, otherwise false.
+     */
     readonly scrolling: boolean;
+    /**
+     * Client state referenced by the ScrollListener instance.
+     */
     readonly state: any;
+    /**
+     * A debugging feature that writes information about how the target element intersects with its parent containers that are defined by the ScrollListener scope.
+     */
+    dumpScope(asText?: boolean): any;
 }
 /**
  * The function invoked by ScrollListener instances when forwarding a downstream scroll event.
- * @function ScrollListenerCallbackFunction
  * @param sender - the ScrollListener instance that invoked the callback.
  * @param args - The callback arguments as an instance of the ScrollListenerCallbackArgs.
  */
 export declare type ScrollListenerCallbackFunction = (sender: ScrollListener, args: ScrollListenerEventArgs) => void;
 /**
  * The function optionally invoked by ScrollListener instances whenever an upstream scroll event occurs.
- * @function ScrollListenerTraceCallbackFunction
  * @param sender - the ScrollListener instance that invoked the callback.
  * @param event - the original scroll event.
  */
 export declare type ScrollListenerTraceCallbackFunction = (sender: ScrollListener, event: Event) => void;
 /**
  * Specifies ScrollListener configuration options.
- * @property {number} throttleDuration - When specified, defines the duration (in milliseconds) of the minimum delay in between
-    processing scroll events (the default is 150 milliseconds).
- * @property {ScrollListenerTraceCallbackFunction} traceFunction - An optional trace function that, when specified, will be invoked by the ScrollListener
- * instance immediately upon receiving an upstream scroll event, and before the upstream event is subject to any further downstream processing.
- * @property {any} state - When specified, defines optional client state to be passed to the callback function.
  */
 export interface ScrollListenerOptions {
+    /**
+     * When specified, defines the duration (in milliseconds) of the minimum delay in between processing scroll events (the default is 150 milliseconds).
+     */
     throttleDuration?: number;
+    /**
+     * An optional trace function that, when specified, will be invoked by the ScrollListener instance immediately upon receiving an upstream scroll event, and before the upstream event is subject to any further downstream processing.
+     */
     traceFunction?: ScrollListenerTraceCallbackFunction;
+    /**
+     * When specified, defines optional client state to be passed to the callback function.
+     */
     state?: any;
 }
 /**
@@ -172,8 +224,6 @@ export declare class ScrollListener {
     private _traceFn;
     /** @internal */
     private _baseEventSrc;
-    /** @internal */
-    private _enabled;
     /**
      * Creates a new ScrollListener instance.
      * @param target The element to track.
@@ -184,35 +234,33 @@ export declare class ScrollListener {
     constructor(target: Element, eventSources: ScrollEventTargetCollection, callbackFunction: ScrollListenerCallbackFunction, options?: ScrollListenerOptions);
     /**
      * Returns the element that the ScrollListener instance is tracking.
-     * @property targetElement
      */
     readonly targetElement: Element;
     /**
      * Gets or sets the enabled state of the ScrollListener instance.
-     * @property enabled
      */
     enabled: boolean;
     /**
      * Returns the current number of throttled upstream events.
      * ScrollListener does not guarantee to forward all throttled events to the downstream handler, however it will always
      * forward the most recent event and guarantees to forward the last event in each sequence.
-     * @property backlog
      */
     readonly backlog: number;
     /**
      * Returns true if any scroll-event source that the ScrollListener instance has subscribed to is currently scrolling, otherwise returns false.
-     * @property isScrolling.
      */
     readonly isScrolling: boolean;
     /**
+     * A debugging feature that writes information about the scope of the current instance to the console.
+     */
+    dumpScope(asText?: boolean): void;
+    /**
      * Detaches all event listeners and releases all resources.
-     * @method destroy
      */
     destroy(): void;
     /**
      * Returns true if the element exposes a getBoundingClientRect method an onscroll property, and addEventListener and removeEventListener methods,
      * otherwise false.
-     * @function isScrollableContainer
      * @param element The element to test.
      */
     static isScrollableContainer(element: any): boolean;
@@ -221,11 +269,12 @@ export declare class ScrollListener {
     /** @internal */
     private getEventArgs(event, source);
     /** @internal */
-    private getScopedIntersectionalRectangle();
+    private getScopedIntersectionalRectangles(r, d);
     /** @internal */
     private getIntersectionalRectangle(child, container);
     /** @internal */
     private getRelativeRectangle(rect, crect);
+    private createIntersectionData(rects);
 }
 
 ```
