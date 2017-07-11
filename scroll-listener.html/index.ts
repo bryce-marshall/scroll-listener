@@ -1,5 +1,6 @@
 import { ScrollListenerDemo } from './scroll-listener-demo';
 import { TrackingTest } from './tracking-test';
+import { PaddingTest } from './padding-test';
 
 declare var _mode: string;
 var _test;
@@ -17,5 +18,9 @@ window.onload = function () {
         _test = new TrackingTest();
         _test.init();
     }
+    else if (_mode == "padding-test") {
+        _test = new PaddingTest();
+        _test.init();
+    }    
 }
 

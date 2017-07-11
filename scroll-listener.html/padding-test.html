@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <script>
+        var _mode = "padding-test";
+    </script>
+    <meta charset="UTF-8">
+    <title>ScrollListener Tracking Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4e8ef7">
+    <script src="bundle.js" type="application/javascript"></script>
+
+    <style>
+        * {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            font-size: 12px;
+            padding: 0;
+        }
+
+        h1 {
+            font-size: 16px;
+            text-align: center;
+        }
+
+        div.row {
+            padding-top: 15px;
+            padding-bottom: 15px;
+            border-bottom: solid royalblue 1px;
+        }
+
+        label {
+            font-size: smaller;
+        }
+
+        label[input] {
+            font-size: smaller;
+            font-weight: bold;
+            color: #3f3f3f;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header" style="padding-left:600px;padding-right:600px;">
+        <h1>
+            Padding Test (Angular)
+        </h1>
+    </div>
+
+    <div id="scroll-container" style="overflow:scroll;border: 1px solid #afafaf;padding:8px;padding-left:600px;padding-right:600px;width:100%;">
+        <div style="max-width:600px;">
+            <div style="height:800px;"></div>
+            <div class="row">
+                <label input>Colour</label>
+                <input id="target" />
+            </div>
+            <div class="row"><button>A Button to Press</button></div>
+            <div class="row">
+                <input type="checkbox" />
+                <label>Open on Focus</label>
+            </div>
+            <div class="row">
+                <input type="checkbox" />
+                <label>Auto-Assign</label>
+            </div>
+            <div class="row">
+                <input type="checkbox" />
+                <label>Custom Create Component</label>
+            </div>
+            <div class="row">
+                <input type="checkbox" />
+                <label>Custom List Component</label>
+            </div>
+            <div style="height:800px;"></div>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -438,7 +438,7 @@ export class ScrollListener {
     /** @internal */
     private getEventArgs(event: UIEvent, source: ScrollEventSource): ScrollListenerEventArgs {
         let that = this;
-        let _bRect: ClientRect = this.targetElement.getBoundingClientRect();
+        let _bRect: ClientRect = Helper.createScrollOffsetRect(this.targetElement.getBoundingClientRect());
         let _rel: ClientRect = null;
         let _intRect: ClientRect = null;
         let _data: ArgData = new ArgData();
@@ -530,8 +530,6 @@ export class ScrollListener {
 
     /** @internal */
     private getScopedIntersectionalRectangles(r: ClientRect, d: ArgData) {
-        //let r = this.targetElement.getBoundingClientRect();
-        //let r = Helper.createBorderOffsetRect(this.targetElement, this.targetElement);
         let a: ClientRect[] = d.scopeRects = [r];
         let s = this._baseEventSrc;
         while (s != null && r.width > 0) {
@@ -607,7 +605,7 @@ abstract class ScrollEventSource {
     abstract get scrollLeft(): number;
 
     getClientRect(): ClientRect {
-        return Helper.createBorderOffsetRect(this);
+        return Helper.createOffsetRect(this);
     }
 
     get parent(): ScrollEventSource {
@@ -772,7 +770,7 @@ class EnclosedTypeFactory {
         };
     }
 
-    public static createRect(t: number, b: number, l: number, r: number) {
+    public static createRect(t: number, b: number, l: number, r: number): ClientRect {
         return {
             get top(): number {
                 return t;
@@ -821,25 +819,30 @@ class Helper {
         };
     }
 
-    static createBorderOffsetRect(s: ScrollEventSource): ClientRect {
+    static createOffsetRect(s: ScrollEventSource): ClientRect {
         let r = s.getBoundingClientRect();
-        let bLeft: number;
-        let bTop: number;
+        let left: number = r.left + window.scrollX;
+        let top: number = r.top + window.scrollY;
+
         if (s.sourceType != DOMType.Window) {
             let style = window.getComputedStyle(<Element>s.source);
-            bLeft = parseInt(style.borderLeft);
-            bTop = parseInt(style.borderTop);
-        }
-        else {
-            bLeft = 0;
-            bTop = 0;
+            left += parseInt(style.borderLeft);
+            top += parseInt(style.borderTop);
         }
 
         return EnclosedTypeFactory.createRect(
-            r.top + bTop,
-            r.top + s.clientHeight + bTop,
-            r.left + bLeft,
-            r.left + s.clientWidth + bLeft
+            top,
+            top + s.clientHeight,
+            left,
+            left + s.clientWidth
+        );
+    }
+
+    static createScrollOffsetRect(r: ClientRect) {
+        let t = r.top + window.scrollY;
+        let l = r.left + window.scrollX;
+        return EnclosedTypeFactory.createRect(
+            t, t + r.height, l, l + r.width
         );
     }
 
@@ -855,7 +858,7 @@ class Helper {
         }
 
         while (root != null) {
-            console.log(Helper.getSourceString(root) + " Intersects=false");
+            console.log(Helper.getSourceString(root) + " Intersects=false " + Helper.getRectString(root.getClientRect()));
             root = root.parent;
         }
     }
