@@ -11,3 +11,28 @@ NOTE that this behaviour should be optional (perhaps configurable using CSS).
 NOTE: Applying style.width = "fit-content" to containing divs fixes the table overflow problem as does style.overflow = "auto", 
 however the problem will persist if scope is not limited to containers with these style settings as they themselves will overflow
 parent containers (at least, they appear to do so with BODY and HTML).
+
+
+
+Still dealing with bug where falsely reports no intersection in certain cases with scrolling DIV and window event source.
+https://stackoverflow.com/questions/123999/how-to-tell-if-a-dom-element-is-visible-in-the-current-viewport/7557433#7557433
+
+function isElementInViewport (el) {
+
+    //special bonus for those using jQuery
+    if (typeof jQuery === "function" && el instanceof jQuery) {
+        el = el[0];
+    }
+
+    var rect = el.getBoundingClientRect();
+
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && /*or $(window).height() */
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth) /*or $(window).width() */
+    );
+}
+
+Incorporate compare me function for scope rather than rectangle? OR better yet, have the window EventSource.getClientRect 
+return a rect with the greater of window.innerHeight || document.documentElement.clientHeight, ETC

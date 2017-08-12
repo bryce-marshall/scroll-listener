@@ -1,4 +1,4 @@
-# @brycemarshall\scroll-listener
+# @brycemarshall/scroll-listener
 A helper class that listens for scroll events affecting a specific element.
 
 # Demo
@@ -7,7 +7,7 @@ http://plnkr.co/2RvsM8BmD5bzSbUqr7pw
 
 ## Installation
 
-`npm install @brycemarshall\scroll-listener`
+`npm install @brycemarshall/scroll-listener`
 
 #The module exports the following:
 
